@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArahSehat — Pahami, Temukan, Navigasikan Informasi Kesehatan</title>
+  <meta name="description" content="Platform informasi dan navigasi kesehatan yang membantu masyarakat Indonesia memahami informasi kesehatan, hak-hak pasien, dan menemukan arah dalam mengakses layanan kesehatan.">
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              green: '#16A34A',
+              'green-dark': '#15803D',
+              'green-light': '#E8F6EF',
+              blue: '#3B82F6',
+              'blue-light': '#EFF6FF',
+              navy: '#1F2937',
+              surface: '#F8FAFC'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18 & Babel CDNs -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    
+    /* Mode Sederhana Support */
+    body.mode-sederhana {
+      font-size: 1.125rem !important; /* 18px base */
+      line-height: 1.8 !important;
+      letter-spacing: 0.02em !important;
+    }
+    body.mode-sederhana h1 { font-size: 2.75rem !important; }
+    body.mode-sederhana h2 { font-size: 2.25rem !important; }
+    body.mode-sederhana button, body.mode-sederhana a { min-height: 48px; }
+
+    /* Hide scrollbar for horizontal chips */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.25s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="bg-brand-surface text-brand-navy dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col selection:bg-emerald-200 dark:selection:bg-emerald-900">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // --- NATIVE INLINE SVG ICON COMPONENT ---
+    const Icon = ({ name, className = "w-5 h-5", ...props }) => {
+      const iconPaths = {
+        'compass': <path d="m12 15-3-6 6-3-3 6Z M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />,
+        'search': <path d="m21 21-4.3-4.3M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" />,
+        'user-check': <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM16 11l2 2 4-4" />,
+        'stethoscope': <path d="M4.8 2.3A.3.3 0 0 0 5 2h2a.3.3 0 0 0 .2.3V5a3 3 0 0 1-6 0V2.3ZM12 10a6 6 0 0 0-12 0v1a8 8 0 0 0 16 0v-1ZM14 16a2 2 0 1 0 4 0 2 2 0 0 0-4 0ZM18 16v5" />,
+        'file-text': <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z M14 2v4h4 M10 9h4 M10 13h4 M10 17h2" />,
+        'flask-conical': <path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3 20.2 20c.6.9.1 2-.9 2H4.7c-1 0-1.5-1.1-.9-2L10 9.3" />,
+        'scan': <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />,
+        'shield-check': <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.8 17 5 19 5a1 1 0 0 1 1 1ZM9 12l2 2 4-4" />,
+        'map-pin': <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />,
+        'book-open': <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2Z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7Z" />,
+        'graduation-cap': <path d="M22 10v6M2 10l10-5 10 5-10 5zM6 12v5c3 3 9 3 12 0v-5" />,
+        'info': <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z M12 16v-4 M12 8h.01" />,
+        'home': <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10" />,
+        'sun': <path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0 M12 2v2 M12 20v2 M4.93 4.93l1.41 1.41 M17.66 17.66l1.41 1.41 M2 12h2 M20 12h2 M4.93 19.07l1.41-1.41 M17.66 6.34l1.41-1.41" />,
+        'moon': <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
+        'x': <path d="M18 6 6 18 M6 6l12 12" />,
+        'menu': <path d="M4 12h16 M4 6h16 M4 18h16" />,
+        'sparkles': <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />,
+        'zap': <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />,
+        'heart-handshake': <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08c.82.82 2.13.85 3 .07l2.07-1.9" />,
+        'check-circle': <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14 M22 4 12 14.01l-3-3" />,
+        'check-circle-2': <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M9 12l2 2 4-4" />,
+        'layout-grid': <path d="M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z" />,
+        'chevron-right': <path d="m9 18 6-6-6-6" />,
+        'arrow-right': <path d="M5 12h14 M12 5l7 7-7 7" />,
+        'arrow-left': <path d="M19 12H5 M12 19l-7-7 7-7" />,
+        'help-circle': <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3 M12 17h.01" />,
+        'credit-card': <path d="M2 10h20 M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z" />,
+        'user-plus': <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M19 8v6 M22 11h-6" />,
+        'shield-alert': <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M12 8v4 M12 16h.01" />,
+        'alert-circle': <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z M12 8v4 M12 16h.01" />,
+        'external-link': <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6 M15 3h6v6 M10 14 21 3" />,
+        'list-checks': <path d="M10 6h11 M10 12h11 M10 18h11 M4 6l1 1 3-3 M4 12l1 1 3-3 M4 18l1 1 3-3" />,
+        'eye': <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />,
+        'scale': <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1ZM2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1ZM7 21h10M12 3v18M12 3 7 7M12 3l5 4" />,
+        'circle': <circle cx="12" cy="12" r="10" />
+      };
+
+      return (
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="2" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          className={className}
+          {...props}
+        >
+          {iconPaths[name] || <circle cx="12" cy="12" r="10" />}
+        </svg>
+      );
+    };
+
+    const LogoSVG = ({ className = "h-9 sm:h-10", showTagline = false }) => (
+      <div className="flex items-center gap-3 select-none">
+        <svg viewBox="0 0 240 200" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+          {/* Left Ribbon Arc (Deep Emerald #16A34A) */}
+          <path 
+            d="M 60 160 C 35 125, 45 60, 105 32 C 122 24, 142 22, 148 42 C 152 60, 120 90, 88 118 C 72 132, 62 148, 60 160 Z" 
+            fill="#16A34A" 
+          />
+          {/* Right Droplet Loop (Calm Blue #3B82F6) */}
+          <path 
+            d="M 92 110 C 118 78, 172 82, 178 122 C 182 152, 142 178, 104 162 C 84 154, 72 136, 92 110 Z" 
+            fill="#3B82F6" 
+          />
+          {/* Inner Accent Leaf Motif (Soft Fresh Green #4ADE80) */}
+          <path 
+            d="M 88 152 C 78 128, 98 110, 115 102 C 112 122, 102 142, 88 152 Z" 
+            fill="#4ADE80" 
+          />
+        </svg>
+        <div className="flex flex-col leading-none">
+          <div className="flex items-center">
+            <span className="font-extrabold text-2xl tracking-tight text-slate-800 dark:text-white">Arah</span>
+            <span className="font-extrabold text-2xl tracking-tight text-brand-green">Sehat</span>
+          </div>
+          {showTagline && (
+            <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase mt-1">
+              Pahami • Temukan • Navigasikan
+            </span>
+          )}
+        </div>
+      </div>
+    );
+
+    const NAVIGATION_DATA = [
+      {
+        id: "hak-pasien-rekam-medis",
+        slug: "hak-pasien-rekam-medis-dan-second-opinion",
+        title: "Hak-Hak Pasien, Rekam Medis & Second Opinion",
+        icon: "scale",
+        category: "Hak & Privasi Pasien",
+        summary: "Hak pasien atas resume rekam medis (SATUSEHAT), hak second opinion, informed consent, dan cara komplain layanan faskes.",
+        keywords: ["hak pasien", "rekam medis", "rm", "salinan rekam medis", "resume medis", "second opinion", "satusehat", "komplain rs", "pengaduan", "menolak tindakan"],
+        introduction: "Setiap warga negara Indonesia yang berobat memiliki Hak Pasien yang dilindungi oleh UU Kesehatan & Permenkes No. 24 Tahun 2022. Memahami hak-hak ini melindungi Anda dari perlakuan tidak adil atau ketidakjelasan informasi medis."
+      },
+      {
+        id: "dokter-spesialis",
+        slug: "saya-ingin-menemui-dokter-spesialis",
+        title: "Saya ingin menemui dokter spesialis",
+        icon: "user-check",
+        category: "Layanan Lanjutan",
+        summary: "Panduan pendaftaran dokter spesialis untuk Pasien BPJS & Pasien Umum, Pasien Baru vs Pasien Lama RS, serta cek jadwal dokter.",
+        keywords: ["spesialis", "dokter spesialis", "rujukan spesialis", "poli spesialis", "cek jadwal dokter", "pasien baru", "pasien lama"],
+        introduction: "Dokter spesialis menangani masalah kesehatan khusus. Alur pendaftarannya berbeda tergantung penjaminan (BPJS/Umum) serta status rekam medis Anda di Rumah Sakit tersebut."
+      },
+      {
+        id: "berobat-umum",
+        slug: "saya-ingin-berobat",
+        title: "Saya ingin berobat umum",
+        icon: "stethoscope",
+        category: "Layanan Dasar",
+        summary: "Panduan awal saat merasakan keluhan kesehatan umum dan memilih tempat berobat pertama (FKTP vs Klinik Umum).",
+        keywords: ["berobat", "periksa umum", "pendaftaran puskesmas", "klinik", "dokter umum", "sakit", "keluhan biasa"],
+        introduction: "Saat mengalami demam, batuk, pusing, atau keluhan fisik umum, langkah awal adalah mendatangi Fasilitas Kesehatan Tingkat Pertama (FKTP) seperti Puskesmas atau Klinik Pratama."
+      },
+      {
+        id: "luar-domisili",
+        slug: "berobat-di-luar-domisili-atau-luar-kota",
+        title: "Saya sedang di luar domisili / luar kota & mau berobat",
+        icon: "map-pin",
+        category: "Layanan Domisili",
+        summary: "Prinsip portabilitas JKN: Batas 3 kali berobat di FKTP luar kota tanpa ubah FKTP & aturan darurat.",
+        keywords: ["luar kota", "luar domisili", "mudik", "liburan", "dinas", "pindah sementara", "berobat luar kota", "3 kali"],
+        introduction: "BPJS Kesehatan menganut prinsip portabilitas. Anda tetap bisa mengakses layanan kesehatan di luar kota/domisili tempat Anda terdaftar dengan aturan khusus."
+      },
+      {
+        id: "gawat-darurat-bpjs",
+        slug: "kondisi-gawat-darurat-ugd-igd",
+        title: "Saya mengalami kondisi gawat darurat (UGD/IGD)",
+        icon: "zap",
+        category: "Darurat Medis",
+        summary: "Bisa langsung ke UGD RS manapun TANPA surat rujukan, ditanggung penuh BPJS sesuai kriteria triase.",
+        keywords: ["ugd", "igd", "gawat darurat", "darurat", "tanpa rujukan", "langsung rs", "kecelakaan", "sesak nafas"],
+        introduction: "Dalam kondisi gawat darurat medis yang mengancam jiwa atau organ tubuh, pelayanan di UGD/IGD Rumah Sakit dijamin BPJS Kesehatan TANPA perlu membawa surat rujukan FKTP."
+      },
+      {
+        id: "pandawa-layanan",
+        slug: "layanan-wa-pandawa-bpjs-kesehatan",
+        title: "Saya ingin ubah data / faskes / aktifkan BPJS via WA PANDAWA",
+        icon: "sparkles",
+        category: "Layanan Digital BPJS",
+        summary: "Cara akses PANDAWA WhatsApp 08118165165: Ubah FKTP, tambah anggota keluarga, cek tunggakan & program REHAB.",
+        keywords: ["pandawa", "wa bpjs", "whatsapp bpjs", "08118165165", "ubah faskes wa", "pindah fktp wa", "rehab", "cicilan bpjs"],
+        introduction: "PANDAWA (Pelayanan Administrasi Melalui WhatsApp) di nomor 08118165165 melayani pengurusan administrasi BPJS Kesehatan tanpa perlu antre di kantor cabang."
+      },
+      {
+        id: "penyakit-cover-bpjs",
+        slug: "penyakit-dan-tindakan-yang-ditanggung-bpjs",
+        title: "Penyakit & tindakan medis apa saja yang ditanggung BPJS?",
+        icon: "shield-check",
+        category: "Jaminan Kesehatan",
+        summary: "Daftar lengkap operasi, cuci darah, kemoterapi, kacamata, gigi, psikiater & hal yang TIDAK ditanggung BPJS.",
+        keywords: ["dicover bpjs", "ditanggung bpjs", "operasi bpjs", "gigi bpjs", "psikiater bpjs", "kacamata bpjs", "cuci darah", "tidak dicover"],
+        introduction: "BPJS Kesehatan menanggung seluruh jenis penyakit dan tindakan medis selama sesuai dengan indikasi medis dari dokter dan mengikuti prosedur berjenjang."
+      },
+      {
+        id: "butuh-rujukan",
+        slug: "saya-membutuhkan-rujukan",
+        title: "Saya membutuhkan surat rujukan / rujukan ulang / perpanjangan",
+        icon: "file-text",
+        category: "Rujukan",
+        summary: "Prosedur penerbitan rujukan online JKN (P-Care), masa berlaku 90 hari, Surat Kontrol RS, dan aturan rujukan parsial obat kosong.",
+        keywords: ["rujukan", "surat rujukan", "rujukan fktp", "p-care", "rujukan online", "minta rujukan", "surat kontrol", "obat kosong", "rujukan parsial"],
+        introduction: "Surat rujukan adalah dokumen medis resmi dari dokter FKTP yang merekomendasikan perawatan lanjutan ke Rumah Sakit. Memiliki masa berlaku 90 hari dan aturan khusus untuk rujukan berulang."
+      },
+      {
+        id: "pemeriksaan-lab",
+        slug: "pemeriksaan-laboratorium",
+        title: "Saya membutuhkan pemeriksaan laboratorium",
+        icon: "flask-conical",
+        category: "Penunjang",
+        summary: "Apakah bisa tes darah mandiri tanpa rujukan dokter? Panduan persiapan tes darah, puasa pra-lab, dan alur BPJS vs Umum.",
+        keywords: ["lab", "laboratorium", "tes darah", "tes urin", "puasa lab", "cek gula darah", "kolesterol", "prodia", "tanpa rujukan"],
+        introduction: "Pemeriksaan laboratorium dilakukan untuk memeriksa sampel darah, urin, atau cairan tubuh. Anda bisa melakukan cek rutin mandiri (Umum/Bayar Sendiri) di laboratorium/Puskesmas tanpa rujukan dokter, namun untuk penjaminan BPJS WAJIB dengan rujukan/pengantar medis."
+      },
+      {
+        id: "pemeriksaan-radiologi",
+        slug: "pemeriksaan-radiologi",
+        title: "Saya membutuhkan pemeriksaan radiologi",
+        icon: "scan",
+        category: "Penunjang",
+        summary: "Bisa foto Rontgen/CT-Scan/MRI sendiri tanpa dokter? Panduan rujukan radiologi, keselamatan radiasi, USG, dan alur RS.",
+        keywords: ["radiologi", "rontgen", "usg", "ct-scan", "mri", "foto rontgen", "tanpa dokter", "pengantar radiologi"],
+        introduction: "Pemeriksaan radiologi (Rontgen, USG, CT-Scan, MRI) melihat organ dalam tubuh. Demi keselamatan radiasi, pemeriksaan sinar-X/CT-Scan TIDAK BISA dilakukan mandiri tanpa surat pengantar/indikasi dari dokter."
+      }
+    ];
+
+    const GLOSSARY_DATA = [
+      {
+        term: "Hak Pasien",
+        fullName: "Hak Hukum Warga Negara dalam Pelayanan Kesehatan",
+        category: "Regulasi",
+        keywords: ["hak pasien", "second opinion", "resume medis", "komplain rs"],
+        definition: "Hak-hak hukum yang melekat pada setiap pasien saat menerima layanan kesehatan.",
+        simpleExplanation: "Hak Anda untuk mendapatkan pelayanan jujur, penjelasan medis yang jelas, salinan ringkasan rekam medis (resume medis), hak meminta pendapat dokter lain (second opinion), dan hak menolak tindakan medis.",
+        whyMatters: "Memastikan Anda tidak dirugikan, diperlakukan kasar, atau dipaksa menjalani tindakan tanpa pemahaman yang cukup.",
+        sources: [{ name: "UU No. 17 Tahun 2023 tentang Kesehatan", url: "https://kemkes.go.id" }],
+        lastReviewed: "Oktober 2026"
+      },
+      {
+        term: "Resume Medis",
+        fullName: "Ringkasan Pulang / Medical Discharge Summary",
+        category: "Rekam Medis",
+        keywords: ["resume medis", "salinan rekam medis", "ringkasan rekam medis"],
+        definition: "Ringkasan pelayanan medis yang diberikan dokter selama masa perawatan pasien.",
+        simpleExplanation: "Dokumen rangkuman resmi yang berisi diagnosis Anda, hasil tes lab/radiologi penting, tindakan yang telah dilakukan, serta daftar obat yang harus diminum di rumah.",
+        whyMatters: "Berdasarkan Permenkes 24/2022, pasien BERHAK mendapatkan salinan resume medis ini untuk arsip pribadi, klaim asuransi swasta, atau konsultasi ke dokter lain.",
+        sources: [{ name: "Kementerian Kesehatan RI", url: "https://kemkes.go.id" }],
+        lastReviewed: "Oktober 2026"
+      },
+      {
+        term: "Rujukan Parsial",
+        fullName: "Rujukan Penunjang / Pengalihan Obat Kosong",
+        category: "Jaminan BPJS",
+        keywords: ["rujukan parsial", "obat kosong", "beli obat di luar"],
+        definition: "Pengalihan pelayanan laboratorium/radiologi/obat antar faskes karena keterbatasan sarana.",
+        simpleExplanation: "Aturan jika obat atau tes laboratorium di RS Anda ternyata stoknya habis/kosong. RS WAJIB membuatkan rujukan parsial ke faskes/apotek jejaring lain TANPA pasien disuruh beli obat bayar sendiri di luar.",
+        whyMatters: "Mencegah pasien BPJS mengeluarkan uang pribadi secara ilegal akibat stok obat RS yang kosong.",
+        sources: [{ name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id" }],
+        lastReviewed: "Oktober 2026"
+      },
+      {
+        term: "Surat Kontrol",
+        fullName: "Surat Perintah Rawat Jalan Ulang / Kontrol RS",
+        category: "Prosedur Medis",
+        keywords: ["surat kontrol", "perpanjang rujukan", "rawat jalan ulang"],
+        definition: "Surat izin kontrol ulang dari dokter spesialis RS untuk kunjungan berikutnya.",
+        simpleExplanation: "Surat dari dokter spesialis RS agar Anda bisa kontrol berulang ke RS tersebut tanpa perlu kembali minta rujukan baru ke Puskesmas/FKTP setiap bulan.",
+        whyMatters: "Selama masa berlaku rujukan online (90 hari) masih aktif, Anda cukup membawa Surat Kontrol RS dari dokter spesialis untuk pendaftaran kunjungan berikutnya.",
+        sources: [{ name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id" }],
+        lastReviewed: "Oktober 2026"
+      },
+      {
+        term: "PANDAWA",
+        fullName: "Pelayanan Administrasi Melalui WhatsApp BPJS Kesehatan",
+        category: "Layanan Digital",
+        keywords: ["pandawa", "wa bpjs", "whatsapp bpjs", "08118165165"],
+        definition: "Layanan resmi BPJS Kesehatan berbasis obrolan WhatsApp di nomor 08118165165.",
+        simpleExplanation: "Layanan WhatsApp resmi BPJS Kesehatan untuk mengurus perubahan FKTP, tambah/kurang anggota keluarga, ubah data KTP/HP, cek tagihan, dan daftar cicilan REHAB tanpa perlu pergi ke kantor cabang.",
+        whyMatters: "Sangat praktis, beroperasi Senin–Jumat jam 08.00–15.00 WIB untuk urusan administrasi online.",
+        sources: [{ name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id" }],
+        lastReviewed: "Oktober 2026"
+      },
+      {
+        term: "Portabilitas JKN",
+        fullName: "Prinsip Hak Akses Layanan Kesehatan Seluruh Indonesia",
+        category: "Aturan JKN",
+        keywords: ["portabilitas", "luar domisili", "luar kota"],
+        definition: "Prinsip JKN yang menjamin peserta dapat mengakses pelayanan kesehatan di mana saja di wilayah NKRI.",
+        simpleExplanation: "Aturan yang membolehkan peserta BPJS berobat di luar kota/domisili tempat terdaftar (maksimal 3 kali kunjungan dalam 1 bulan di FKTP luar wilayah).",
+        whyMatters: "Memastikan Anda tetap bisa berobat saat mudik, liburan, atau perjalanan dinas.",
+        sources: [{ name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id" }],
+        lastReviewed: "Oktober 2026"
+      },
+      {
+        term: "FKTP",
+        fullName: "Fasilitas Kesehatan Tingkat Pertama",
+        category: "Sistem Kesehatan",
+        keywords: ["fktp", "puskesmas", "klinik pratama", "dokter keluarga"],
+        definition: "Fasilitas kesehatan dasar tempat pertama kali masyarakat mengakses layanan medis.",
+        simpleExplanation: "FKTP adalah gerbang utama tempat berobat paling awal seperti Puskesmas, Klinik Pratama, atau Dokter Keluarga yang terdaftar di kartu BPJS Anda.",
+        whyMatters: "Wajib didatangi pertama kali bagi peserta BPJS untuk evaluasi awal sebelum dirujuk ke spesialis.",
+        sources: [{ name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id" }],
+        lastReviewed: "September 2026"
+      },
+      {
+        term: "SATUSEHAT",
+        fullName: "Platform Rekam Medis Digital Nasional Kementerian Kesehatan",
+        category: "Layanan Digital",
+        keywords: ["satusehat", "rekam medis digital", "kemenkes app"],
+        definition: "Platform integrasi data kesehatan warga Indonesia dari seluruh Puskesmas, Klinik, dan RS.",
+        simpleExplanation: "Aplikasi resmi Kemenkes di HP tempat Anda dapat melihat riwayat imunisasi, hasil tes lab digital, dan resume rekam medis dari berbagai rumah sakit secara terpusat.",
+        whyMatters: "Memudahkan pasien menyimpan riwayat kesehatan tanpa takut kehilangan berkas kertas.",
+        sources: [{ name: "SATUSEHAT Kemenkes", url: "https://satusehat.kemkes.go.id" }],
+        lastReviewed: "Oktober 2026"
+      }
+    ];
+
+    const EDUCATION_ARTICLES = [
+      {
+        id: "memahami-hak-pasien",
+        slug: "hak-pasien-dalam-pelayanan-kesehatan",
+        title: "Panduan Lengkap Hak-Hak Pasien Saat Berobat di Indonesia",
+        category: "Hak Pasien",
+        readTime: "4 menit",
+        summary: "Ketahui hak Anda atas resume medis, second opinion, serta tata cara mengajukan komplain resmi faskes.",
+        content: [
+          { heading: "1. Hak Mendapatkan Resume Rekam Medis", body: "Berdasarkan Permenkes No. 24 Tahun 2022, rekam medis milik faskes, namun ISINYA adalah milik pasien. Pasien berhak mendapatkan salinan Ringkasan Pulang (Resume Medis) untuk arsip pribadi atau asuransi." },
+          { heading: "2. Hak Meminta Second Opinion (Pendapat Kedua)", body: "Anda berhak meminta pendapat dari dokter spesialis lain mengenai diagnosa atau rencana tindakan tanpa takut diskriminasi dari faskes tempat Anda berobat." },
+          { heading: "3. Hak Memilih & Menolak Tindakan Medis (Informed Consent)", body: "Sebelum operasi atau tindakan berisiko, dokter wajib menjelaskan risiko dan alternatifnya. Anda berhak menyetujui atau menolak tindakan tersebut." },
+          { heading: "4. Akses Kanal Pengaduan / Komplain", body: "Jika mengalami pelayanan buruk, diskriminasi, atau dipaksa beli obat BPJS di luar, Anda dapat melapor ke Unit Humas RS, fitur Pengaduan di Mobile JKN, Call Center 165, atau HALO KEMKES 1500567." }
+        ],
+        keyTakeaway: "Pasien yang paham hak-haknya akan mendapatkan pelayanan kesehatan yang lebih aman dan transparan.",
+        sources: [{ name: "Kementerian Kesehatan RI", url: "https://kemkes.go.id", title: "Permenkes No. 24 Tahun 2022 tentang Rekam Medis" }]
+      },
+      {
+        id: "memahami-informasi",
+        slug: "cara-memahami-informasi-kesehatan",
+        title: "5 Langkah Cerdas Memahami Informasi Kesehatan",
+        category: "Memahami Informasi",
+        readTime: "3 menit",
+        summary: "Panduan praktis menyaring kabar kesehatan agar tidak terkecoh mitos atau informasi membingungkan.",
+        content: [
+          { heading: "1. Periksa Siapa Penulisnya", body: "Pastikan informasi ditulis atau ditinjau oleh profesional kesehatan (dokter, apoteker, perawat) atau instansi resmi." },
+          { heading: "2. Cari Referensi Sumber Resmi", body: "Informasi kredibel selalu mencantumkan acuan, seperti situs Kementerian Kesehatan, WHO, atau jurnal ilmiah terverifikasi." },
+          { heading: "3. Waspadai Judul Sensasional", body: "Judul yang memicu ketakutan atau menjanjikan 'obat ajaib serbaguna' biasanya merupakan tanda kabar yang belum teruji." }
+        ],
+        keyTakeaway: "Informasi kesehatan yang baik memberikan kejelasan, bukan memicu kecemasan.",
+        sources: [{ name: "WHO", url: "https://who.int", title: "Health Literacy Guidelines" }]
+      }
+    ];
+
+    const TRUSTED_SOURCES = [
+      {
+        category: "Pemerintah Indonesia & Jaminan",
+        items: [
+          { name: "Kementerian Kesehatan RI", description: "Regulator utama dan penyedia informasi resmi kebijakan kesehatan nasional.", url: "https://kemkes.go.id", tag: "Resmi Government" },
+          { name: "BPJS Kesehatan", description: "Penyelenggara jaminan kesehatan nasional (JKN) masyarakat Indonesia.", url: "https://bpjs-kesehatan.go.id", tag: "Jaminan Sosial" },
+          { name: "SATUSEHAT Kemenkes", description: "Platform integrasi rekam medis digital resmi warga Indonesia.", url: "https://satusehat.kemkes.go.id", tag: "Portal Digital" }
+        ]
+      }
+    ];
+
+    // Link Web App Google Apps Script resmi milik Anda (Telah Terintegrasi Aktif)
+    const GAS_SURVEY_URL = "https://script.google.com/macros/s/AKfycbxrgZYN2CpDEIVf8XGL8dzakdiEFPy14Dg61RgESqguFIS8MDFnlfEGdjNWQuU5FMx-TA/exec";
+
+    const INTERACTIVE_FLOWS = {
+      "hak-pasien-rekam-medis": {
+        title: "Panduan Interaktif: Hak-Hak Pasien, Rekam Medis & Second Opinion",
+        description: "Pahami hak hukum Anda saat berobat untuk mencegah ketidakjelasan atau pelayanan yang merugikan:",
+        questions: [
+          {
+            id: "topikHak",
+            question: "1. Hak pasien mana yang ingin Anda ketahui lebih detail?",
+            options: [
+              { label: "Hak Salinan Resume Rekam Medis & Data SATUSEHAT", value: "rekam_medis", icon: "file-text" },
+              { label: "Hak Second Opinion (Meminta Pendapat Dokter Lain)", value: "second_opinion", icon: "user-check" },
+              { label: "Hak Komplain / Pengaduan Pelayanan Faskes & RS", value: "komplain", icon: "alert-circle" }
+            ]
+          }
+        ],
+        getResult: (answers) => {
+          const isRM = answers.topikHak === 'rekam_medis';
+          const isSO = answers.topikHak === 'second_opinion';
+
+          if (isRM) {
+            return {
+              steps: [
+                {
+                  title: "Landasan Hukum: Permenkes No. 24 Tahun 2022 tentang Rekam Medis",
+                  desc: "Fisik dokumen rekam medis adalah milik Fasilitas Kesehatan, TETAPI ISI DOKUMEN REKAM MEDIS ADALAH MILIK PASIEN. Pasien berhak meminta ringkasan rekam medis (Resume Medis / Discharge Summary)."
+                },
+                {
+                  title: "Langkah Meminta Salinan Resume Medis di Rumah Sakit / Klinik",
+                  desc: "Datangi bagian Rekam Medis / Customer Service RS. Ajukan permohonan 'Salinan Resume Medis / Ringkasan Pulang'. Tunjukkan KTP identitas pasien. Pihak RS WAJIB memberikan lembar resume medis tersebut."
+                },
+                {
+                  title: "Rekam Medis Digital di Aplikasi SATUSEHAT Kemenkes",
+                  desc: "Seluruh RS dan Puskesmas terintegrasi secara bertahap ke platform SATUSEHAT Kemenkes. Anda bisa melihat riwayat diagnosis, hasil lab digital, dan rekam medis digital langsung dari smartphone Anda di aplikasi SATUSEHAT Mobile."
+                }
+              ],
+              notes: ["Resume medis sangat berguna jika Anda ingin pindah dokter, klaim asuransi swasta, atau konsultasi second opinion."],
+              sources: [{ name: "Kementerian Kesehatan RI", url: "https://kemkes.go.id", title: "Permenkes No. 24 Tahun 2022 tentang Rekam Medis" }]
+            };
+          } else if (isSO) {
+            return {
+              steps: [
+                {
+                  title: "Apa Itu Hak Second Opinion (Pendapat Medis Kedua)?",
+                  desc: "Hak pasien untuk berkonsultasi dengan dokter spesialis lain (dari RS yang sama atau RS berbeda) untuk mengonfirmasi diagnosis, pengobatan, atau indikasi operasi dari dokter pertama."
+                },
+                {
+                  title: "Cara Mengajukan Second Opinion Tanpa Memicu Konflik",
+                  desc: "Sampaikan dengan sopan kepada dokter pertama: 'Dokter, untuk kepastian keluarga, kami bermaksud meminta pendapat dokter kedua. Mohon bantuannya untuk memberikan salinan resume medis dan hasil tes lab/radiologi saya.' Dokter profesional tidak akan melarang hak second opinion pasien."
+                },
+                {
+                  title: "Apakah Second Opinion Di-Cover BPJS Kesehatan?",
+                  desc: "Konsultasi ke dokter kedua di RS lain atas keinginan sendiri (tanpa rujukan dokter pertama) dikategorikan sebagai Pasien Umum (Bayar Mandiri). Namun jika dirujuk secara internal antar spesialis di RS yang sama, dapat dijamin BPJS."
+                }
+              ],
+              notes: ["Membawa berkas resume medis & hasil lab dari dokter pertama akan menghemat biaya pemeriksaan ulang."],
+              sources: [{ name: "Konsil Kedokteran Indonesia", url: "http://www.kki.go.id", title: "Hak Pasien & Kode Etik Kedokteran" }]
+            };
+          } else {
+            return {
+              steps: [
+                {
+                  title: "Kanal Komplain Resmi 1: Unit Humas / Pengaduan RS",
+                  desc: "Setiap Rumah Sakit memiliki Loket Pengaduan / Unit Humas (Customer Care). Jika Anda diperlakukan kasar, dipaksa membeli obat BPJS di luar, atau tidak mendapatkan penjelasan memadai, datangi Loket Humas RS setempat."
+                },
+                {
+                  title: "Kanal Komplain Resmi 2: Fitur Pengaduan Mobile JKN & BPJS Care Center 165",
+                  desc: "Untuk masalah terkait BPJS (seperti diskriminasi kuota antrean atau pungutan liar), buka aplikasi Mobile JKN di menu 'Pengaduan Layanan' atau hubungi telepon BPJS 165."
+                },
+                {
+                  title: "Kanal Komplain Resmi 3: HALO KEMKES (1500567 / WA 081110500567)",
+                  desc: "Pemerintah menyediakan layanan pengaduan kesehatan nasional di HALO KEMKES 1500567 atau email kontak@kemkes.go.id untuk laporan faskes/tenaga kesehatan yang melanggar standar."
+                }
+              ],
+              notes: ["Catat nama petugas/dokter, tanggal kejadian, dan lokasi ruangan saat mengajukan laporan aduan resmi."],
+              sources: [{ name: "Kementerian Kesehatan RI", url: "https://kemkes.go.id", title: "Layanan Pengaduan Masyarakat HALO KEMKES 1500567" }]
+            };
+          }
+        }
+      },
+
+      "butuh-rujukan": {
+        title: "Panduan Interaktif: Surat Rujukan, Rujukan Ulang & Rujukan Parsial",
+        description: "Pahami masa berlaku rujukan 90 hari, Surat Kontrol RS, dan aturan jika obat RS kosong:",
+        questions: [
+          {
+            id: "topikRujukan",
+            question: "1. Hal apa yang ingin Anda ketahui seputar Surat Rujukan?",
+            options: [
+              { label: "Cara Minta Surat Rujukan Baru dari FKTP / Puskesmas", value: "baru", icon: "file-text" },
+              { label: "Masa Berlaku Rujukan (90 Hari) & Cara Kontrol Ulang ke RS", value: "kontrol", icon: "list-checks" },
+              { label: "Obat BPJS di RS Kosong / Disuruh Beli di Luar (Rujukan Parsial)", value: "parsial", icon: "alert-circle" }
+            ]
+          }
+        ],
+        getResult: (answers) => {
+          const isKontrol = answers.topikRujukan === 'kontrol';
+          const isParsial = answers.topikRujukan === 'parsial';
+
+          if (isKontrol) {
+            return {
+              steps: [
+                {
+                  title: "Masa Berlaku Surat Rujukan Online JKN (90 Hari / 3 Bulan)",
+                  desc: "Surat rujukan online JKN dari FKTP/Puskesmas berlaku selama 90 HARI sejak diterbitkan. Selama 90 hari ini, Anda TIDAK PERLU kembali ke Puskesmas tiap bulan hanya untuk minta rujukan baru."
+                },
+                {
+                  title: "Prosedur Kontrol Ulang Pakai 'Surat Kontrol RS'",
+                  desc: "Setelah konsultasi pertama dengan dokter spesialis RS, dokter akan mencetak 'Surat Kontrol' yang berisi tanggal kunjungan Anda berikutnya. Bawa Surat Kontrol ini saat berobat ulang di RS tanpa harus ke Puskesmas lagi."
+                },
+                {
+                  title: "Bagaimana Jika Masa 90 Hari Sudah Habis?",
+                  desc: "Jika perawatan medis Anda di RS belum selesai tetapi masa berlaku rujukan 90 hari sudah habis, Dokter Spesialis RS dapat memperpanjang masa rujukan secara online di sistem, ATAU Anda diminta kembali ke FKTP untuk pembaruan rujukan berkala."
+                }
+              ],
+              notes: ["Simpan lembar Surat Kontrol RS dengan baik untuk pendaftaran di mesin pendaftaran mandiri (APM) RS."],
+              sources: [{ name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id", title: "Aturan Masa Berlaku Rujukan Online JKN" }]
+            };
+          } else if (isParsial) {
+            return {
+              steps: [
+                {
+                  title: "ATURAN TEGAS BPJS: Dilarang Menyuruh Pasien Beli Obat BPJS di Luar!",
+                  desc: "Berdasarkan regulasi JKN, Rumah Sakit TIDAK BOLEH menyuruh pasien BPJS membeli obat menggunakan uang pribadi di luar RS karena alasan stok apotek RS kosong."
+                },
+                {
+                  title: "Solusi Resmi RS: Menerbitkan 'Rujukan Parsial'",
+                  desc: "Jika obat atau tes lab di RS A kosong, RS A WAJIB membuatkan 'Rujukan Parsial' ke RS B atau Apotek Jejaring BPJS setempat. Biaya pengadaan obat/tes tersebut ditanggung penuh oleh RS A tanpa meminta biaya tambahan dari pasien."
+                },
+                {
+                  title: "Langkah Pasien Jika Dipaksa Beli Obat Sendiri",
+                  desc: "Jika RS tetap memaksa beli di luar, simpan kwitansi nota asli obat tersebut dan laporkan ke Petugas BPJS SATU SEHAT / BPJS Center di RS tersebut untuk pengajuan klaim restitusi/reimbursement penggantian uang."
+                }
+              ],
+              notes: ["Laporkan kendala obat kosong ke Petugas BPJS Center RS atau Call Center 165."],
+              sources: [{ name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id", title: "Regulasi Penjaminan Obat & Rujukan Parsial JKN" }]
+            };
+          } else {
+            return {
+              steps: [
+                {
+                  title: "Langkah 1: Datangi FKTP / Puskesmas Terdaftar Anda",
+                  desc: "Datangi Puskesmas atau Klinik Pratama tempat NIK BPJS Anda terdaftar. Dokter FKTP akan melakukan pemeriksaan fisik awal."
+                },
+                {
+                  title: "Langkah 2: Evaluasi Indikasi Medis oleh Dokter FKTP",
+                  desc: "Jika penyakit membutuhkan penanganan alat khusus atau dokter spesialis, dokter FKTP akan menginput 'Surat Rujukan Online JKN' ke sistem P-Care BPJS."
+                },
+                {
+                  title: "Langkah 3: Pemilihan RS Tujuan Sesuai Sistem Rujukan Berjenjang",
+                  desc: "Anda dan dokter FKTP menentukan RS tujuan (biasanya RS Tipe C/D terlebih dahulu). Anda akan menerima cetakan lembar rujukan online atau nomor rujukan digital di Mobile JKN."
+                }
+              ],
+              notes: ["Surat rujukan berlaku selama 90 hari sejak diterbitkan."],
+              sources: [{ name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id", title: "Sistem Rujukan Online Pelayanan Kesehatan JKN" }]
+            };
+          }
+        }
+      },
+
+      "luar-domisili": {
+        title: "Panduan Interaktif: Berobat Saat di Luar Kota / Luar Domisili",
+        description: "Pahami hak berobat Anda di luar kota berdasarkan status kondisi medis Anda saat ini:",
+        questions: [
+          {
+            id: "kondisiMedis",
+            question: "1. Bagaimana kondisi medis yang Anda atau keluarga alami saat ini?",
+            options: [
+              { label: "Rawat Jalan Biasa (Batuk, Demam, Pusing, Sakit Perut Ringan saat Liburan/Dinas)", value: "biasa", icon: "stethoscope" },
+              { label: "Gawat Darurat / Kebencanaan / Kecelakaan Parah (Dada Nyeri, Sesak Berat, Pendarahan)", value: "darurat", icon: "zap" },
+              { label: "Pindah Domisili Tempat Tinggal Permanen / Pindah Tugas Kerja", value: "pindah", icon: "map-pin" }
+            ]
+          }
+        ],
+        getResult: (answers) => {
+          const isDarurat = answers.kondisiMedis === 'darurat';
+          const isPindah = answers.kondisiMedis === 'pindah';
+
+          let steps = [];
+          let notes = [];
+
+          if (isDarurat) {
+            steps.push({
+              title: "LANGSUNG MENUJU UGD / IGD RUMAH SAKIT TERDEKAT!",
+              desc: "Untuk kondisi gawat darurat, Anda TIDAK PERLU mencari FKTP atau memikirkan lokasi domisili. Datangi UGD RS terdekat manapun (bahkan RS yang belum bekerja sama dengan BPJS sekalipun). Berdasarkan regulasi JKN, seluruh penanganan gawat darurat wajib dilayani dan ditanggung penuh oleh BPJS Kesehatan."
+            });
+            steps.push({
+              title: "Tunjukkan Identitas NIK KTP / Kartu BPJS di Loket UGD",
+              desc: "Tunjukkan KTP atau Mobile JKN kepada petugas UGD. Petugas RS akan melakukan verifikasi data kepesertaan Anda tanpa memerlukan Surat Rujukan."
+            });
+            notes.push("Penetapan kondisi gawat darurat ditentukan oleh Dokter UGD RS berdasarkan Kriteria Triase Medis BPJS.");
+          } else if (isPindah) {
+            steps.push({
+              title: "Ganti FKTP Terdaftar Anda Secara Permanent via Mobile JKN / WA PANDAWA",
+              desc: "Jika Anda pindah domisili tinggal atau pindah kerja permanen, segera lakukan perubahan FKTP. Perubahan FKTP dapat dilakukan mandiri melalui aplikasi Mobile JKN (Menu 'Ubah Data Peserta') atau WhatsApp PANDAWA di 08118165165."
+            });
+            steps.push({
+              title: "Aturan Waktu Perubahan FKTP & Pengecualian Syarat Kurang dari 3 Bulan",
+              desc: "UMUMNYA: Perubahan FKTP baru bisa dilakukan setelah terdaftar minimal 3 bulan di FKTP lama, dan aktif berlaku pada tanggal 1 bulan berikutnya. NAMAUN BISA KURANG DARI 3 BULAN JIKA: (1) Pindah domisili tempat tinggal/tugas kerja dengan melampirkan Surat Keterangan Pindah / Surat Tugas, (2) FKTP lama tutup/izin operasional dicabut, atau (3) Perubahan status kepesertaan."
+            });
+            notes.push("Setelah FKTP resmi berpindah di sistem Mobile JKN, Anda dapat berobat rutin di FKTP baru Anda.");
+          } else {
+            // RAWAT JALAN BIASA LUAR KOTA
+            steps.push({
+              title: "Aturan Utama: Prinsip Portabilitas JKN (Maksimal 3 Kali Kunjungan per Bulan)",
+              desc: "Berdasarkan Perpres No. 19 Tahun 2016, peserta BPJS yang sedang berada di luar domisili (liburan, dinas, mudik) berhak berobat ke FKTP terdekat mana saja di kota tersebut MAKSIMAL 3 KALI KUNJUNGAN DALAM 1 BULAN tanpa perlu memindahkan FKTP secara permanen."
+            });
+            steps.push({
+              title: "Langkah 1: Cari FKTP Terdekat di Kota Tempat Anda Berada",
+              desc: "Cari Puskesmas, Klinik Pratama, atau Dokter Keluarga terdekat. Buka aplikasi Mobile JKN di menu 'Info Lokasi Faskes' atau gunakan Google Maps untuk menemukan Puskesmas/Klinik terdekat."
+            });
+            steps.push({
+              title: "Langkah 2: Datangi FKTP & Tunjukkan NIK KTP / Kartu BPJS",
+              desc: "Sampaikan ke petugas pendaftaran bahwa Anda sedang berada di luar domisili dan ingin berobat menggunakan fasilitas Portabilitas BPJS. Cukup tunjukkan KTP atau e-Kartu di Mobile JKN. Tidak diperlukan surat pengantar domisili dari RT/RW."
+            });
+            steps.push({
+              title: "Langkah 3: Pemeriksaan & Surat Rujukan (Jika Diperlukan Spesialis)",
+              desc: "Dokter FKTP setempat akan memeriksa Anda. Jika membutuhkan dokter spesialis saat di luar kota, dokter FKTP luar kota tersebut dapat menerbitkan Surat Rujukan ke Rumah Sakit setempat."
+            });
+            notes.push("Fasilitas ini berlaku untuk kunjungan sementara (maksimal 3x kunjungan dalam 1 bulan di FKTP luar domisili). Jika tinggal lebih dari 1 bulan, disarankan pindah FKTP permanen.");
+          }
+
+          return {
+            steps,
+            notes,
+            sources: [
+              { name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id", title: "Panduan Layanan Luar Domisili & Portabilitas JKN" },
+              { name: "Kementerian Kesehatan RI", url: "https://kemkes.go.id", title: "Perpres No. 19 Tahun 2016 tentang Jaminan Kesehatan" }
+            ]
+          };
+        }
+      },
+
+      "gawat-darurat-bpjs": {
+        title: "Panduan Interaktif: Penanganan Gawat Darurat UGD / IGD BPJS",
+        description: "Pahami hak dan alur pertolongan darurat medis tanpa birokrasi rujukan:",
+        questions: [
+          {
+            id: "lokasiRs",
+            question: "1. Di mana lokasi Rumah Sakit / UGD terdekat dari tempat Anda?",
+            options: [
+              { label: "RS Mitra Kerjasama BPJS Kesehatan", value: "rs_bpjs", icon: "shield-check" },
+              { label: "RS Swasta / Klinik yang BELUM Bekerja Sama dengan BPJS", value: "rs_nonbpjs", icon: "alert-circle" }
+            ]
+          }
+        ],
+        getResult: (answers) => {
+          return {
+            steps: [
+              {
+                title: "ATURAN UTAMA: TANPA PERLU SURAT RUJUKAN FKTP!",
+                desc: "Dalam kondisi gawat darurat medis, siapapun peserta BPJS BISA LANGSUNG menuju UGD/IGD Rumah Sakit manapun TANPA perlu mendatangi Puskesmas/FKTP terlebih dahulu dan TANPA surat rujukan."
+              },
+              {
+                title: "Apakah Dijamin jika RS Tersebut BELUM Kerja Sama BPJS?",
+                desc: "YA, TETAP DIJAMIN! Menurut Undang-Undang Kesehatan dan Aturan BPJS, seluruh fasilitas kesehatan (baik bekerjasama maupun NON-mitra BPJS) WAJIB memberikan pertolongan gawat darurat penyelematan jiwa (life-saving). Biaya tindakan darurat awal ditanggung oleh BPJS Kesehatan."
+              },
+              {
+                title: "Langkah 1: Tiba di UGD & Pemeriksaan Triase Medis",
+                desc: "Dokter UGD akan langsung menguji kriteria gawat darurat berdasarkan standar medis (Triase Red/Yellow). Kriteria meliputi: ancaman fungsi vital, gangguan kesadaran, sesak nafas berat, pendarahan hebat, patah tulang terbuka, kejang, nyeri dada mendadak, atau luka bakar parah."
+              },
+              {
+                title: "Langkah 2: Pelaporan Registrasi BPJS (Maksimal 3x24 Jam Kerja)",
+                desc: "Keluarga pasien dapat mengurus admisi di loket RS dengan menunjukkan KTP/Kartu BPJS pasien. Pelaporan kepesertaan BPJS di kasir/admisi RS wajib dilakukan sebelum pasien pulang atau maksimal 3x24 jam kerja sejak pasien masuk UGD."
+              }
+            ],
+            notes: [
+              "Jika kriteria tidak dinilai gawat darurat oleh dokter UGD, pasien akan disarankan berobat ke poliklinik rawat jalan via FKTP.",
+              "Dilarang keras meminta uang muka (dp/deposit) kepada pasien gawat darurat JKN."
+            ],
+            sources: [
+              { name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id", title: "Prosedur Pelayanan Gawat Darurat JKN" }
+            ]
+          };
+        }
+      },
+
+      "pandawa-layanan": {
+        title: "Panduan Interaktif: Menggunakan WA PANDAWA BPJS (08118165165)",
+        description: "Urus seluruh administrasi BPJS Kesehatan langsung dari HP tanpa antre di kantor cabang:",
+        questions: [
+          {
+            id: "jenisLayanan",
+            question: "1. Layanan administrasi apa yang ingin Anda lakukan di PANDAWA?",
+            options: [
+              { label: "Ubah FKTP / Pindah Faskes Tingkat 1", value: "fktp", icon: "map-pin" },
+              { label: "Tambah / Pengurangan Anggota Keluarga & Update Data KTP/HP", value: "data", icon: "user-plus" },
+              { label: "Pengaktifan Kembali BPJS Non-Aktif & Program REHAB Cicilan", value: "rehab", icon: "credit-card" }
+            ]
+          }
+        ],
+        getResult: (answers) => {
+          return {
+            steps: [
+              {
+                title: "Nomor WhatsApp Resmi PANDAWA BPJS Kesehatan",
+                desc: "Simpan nomor WhatsApp resmi PANDAWA BPJS Kesehatan: 08118165165 (Atau chat CHIKA di 08118750400). Jam operasional pelayanan PANDAWA adalah Senin – Jumat, pukul 08.00 – 15.00 WIB."
+              },
+              {
+                title: "Langkah 1: Kirim Pesan WhatsApp ke 08118165165",
+                desc: "Kirim pesan 'Halo' atau 'Menu' ke nomor WhatsApp PANDAWA 08118165165. Anda akan mendapatkan balasan otomatis berupa link transaksi atau daftar pilihan menu."
+              },
+              {
+                title: "Langkah 2: Pilih Jenis Layanan & Isi Formulir Online",
+                desc: "Klik link formulir yang diberikan oleh sistem PANDAWA. Pilih jenis layanan (Administrasi/Ubah Faskes/REHAB), masukkan NIK KTP, No. HP, dan unggah foto/dokumen pendukung (KTP/KK) jika diminta."
+              },
+              {
+                title: "Langkah 3: Konfirmasi Petugas BPJS Kesehatan",
+                desc: "Petugas BPJS Kesehatan akan memproses permohonan Anda dan memberikan pesan konfirmasi keberhasilan transaksi langsung di chat WhatsApp."
+              }
+            ],
+            notes: [
+              "HATI-HATI PENIPUAN! Nomor resmi PANDAWA hanya 08118165165 dan centang hijau resmi.",
+              "Selain PANDAWA, pendaftaran dan ubah faskes juga bisa diproses langsung via aplikasi Mobile JKN atau mendatangi Kantor Cabang BPJS / BPJS Keliling terdekat."
+            ],
+            sources: [
+              { name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id", title: "Kanal Pelayanan Non-Tatap Muka PANDAWA" }
+            ]
+          };
+        }
+      },
+
+      "penyakit-cover-bpjs": {
+        title: "Panduan Interaktif: Penyakit & Tindakan yang Ditanggung BPJS",
+        description: "Cek kepastian jaminan layanan kesehatan Anda menurut aturan BPJS Kesehatan:",
+        questions: [
+          {
+            id: "kategoriCover",
+            question: "1. Kelompok perawatan medis mana yang ingin Anda cek jaminannya?",
+            options: [
+              { label: "Penyakit Kronis / Operasi Besar / Kanker / Cuci Darah", value: "kronis", icon: "stethoscope" },
+              { label: "Gigi, Kacamata, Alat Bantu Dengar, Psikiater/Mental", value: "penunjang", icon: "flask-conical" },
+              { label: "Cek Hal yang TIDAK DICOVER / TIDAK DITANGGUNG BPJS", value: "notcovered", icon: "alert-circle" }
+            ]
+          }
+        ],
+        getResult: (answers) => {
+          const isNot = answers.kategoriCover === 'notcovered';
+          const isPenunjang = answers.kategoriCover === 'penunjang';
+
+          if (isNot) {
+            return {
+              steps: [
+                {
+                  title: "Daftar Tindakan & Kondisi yang TIDAK DITANGGUNG BPJS Kesehatan",
+                  desc: "Berdasarkan Perpres No. 82 Tahun 2018, layanan yang TIDAK dicover meliputi: (1) Operasi kosmetik / estetika kecantikan, (2) Program hamil / bayi tabung / pengobatan infertilitas, (3) Gangguan kesehatan akibat sengaja menyakiti diri sendiri / percobaan bunuh diri, (4) Pengobatan alternatif yang belum teruji klinis, (5) Pengobatan di luar negeri, (6) Cedera akibat olahraga ekstrem berisiko tinggi tanpa jaminan."
+                },
+                {
+                  title: "Catatan Kasus Kecelakaan Lalu Lintas (KLL)",
+                  desc: "Untuk kecelakaan lalu lintas tunggal/ganda, penjamin utama pertama adalah Jasa Raharja (hingga plafon Rp20 juta). Jika biaya pengobatan melebihi plafon Jasa Raharja, sisa biaya dapat dijamin oleh BPJS Kesehatan sebagai penjamin kedua dengan membawa Surat Keterangan Kecelakaan dari Kepolisian (LP)."
+                }
+              ],
+              notes: ["Seluruh pelayanan di luar indikasi medis resmi dokter tidak dapat diklaimkan ke BPJS."],
+              sources: [{ name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id", title: "Perpres No. 82 Tahun 2018 tentang Jaminan Kesehatan" }]
+            };
+          } else if (isPenunjang) {
+            return {
+              steps: [
+                {
+                  title: "Pelayanan Kesehatan Gigi (Ditanggung BPJS)",
+                  desc: "Meliputi: Periksa gigi, cabut gigi, tambal gigi, pembersihan karang gigi (Scaling gigi 1 kali dalam setahun atas indikasi medis dari dokter gigi FKTP), serta subsidi protesa gigi/gigi tiruan."
+                },
+                {
+                  title: "Kesehatan Mental & Konsultasi Psikiater / Psikolog",
+                  desc: "Sangat dijamin BPJS! Konsultasi jiwa dan obat-obatan psikofarmaka ditanggung penuh. Berobat dimulai dari konsultasi di Puskesmas/FKTP, jika perlu penanganan spesifik akan dirujuk ke Dokter Spesialis Kedokteran Jiwa (Sp.KJ/Psikiater) di Rumah Sakit."
+                },
+                {
+                  title: "Subsidi Klaim Kacamata & Alat Bantu Kesehatan",
+                  desc: "Plafon subsidi kacamata berdasarkan kelas kepesertaan (Kelas 1: Rp330rb, Kelas 2: Rp220rb, Kelas 3: Rp110rb) setiap 2 tahun sekali dengan resep dari Dokter Spesialis Mata. Alat bantu dengar, korset tulang belakang, dan kaki/tangan palsu juga disubsidi sesuai indikasi medis."
+                }
+              ],
+              notes: ["Subsidi kacamata memerlukan surat resep terverifikasi dari Dokter Spesialis Mata RS."],
+              sources: [{ name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id", title: "Panduan Klaim Alat Kesehatan & Penunjang JKN" }]
+            };
+          } else {
+            return {
+              steps: [
+                {
+                  title: "Operasi Besar & Penyakit Katastropik (DITANGGUNG 100%)",
+                  desc: "BPJS Kesehatan menanggung 100% biaya tanpa batas plafon maksimal untuk penyakit katastropik, antara lain: Operasi Jantung & Pasang Ring Jantung, Cuci Darah (Hemodialisis) seumur hidup, Pengobatan Kanker (Kemoterapi & Radioterapi), Operasi Katarak, Operasi Caesar (Sectio Caesarea sesuai indikasi medis), Operasi Usus Buntu, Batu Ginjal, dan stroke."
+                },
+                {
+                  title: "Pendaftaran Bayi Baru Lahir (Maksimal 28 Hari Sejak Lahir)",
+                  desc: "Bayi baru lahir dari peserta BPJS wajib didaftarkan maksimal 28 hari sejak lahir agar seluruh penanganan medis bayi (termasuk perawatan NICU/PICU) ditanggung penuh oleh BPJS Kesehatan."
+                }
+              ],
+              notes: ["Syarat utama penjaminan 100% adalah mengikuti alur rujukan berjenjang dan sesuai indikasi medis dokter."],
+              sources: [{ name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id", title: "Manfaat Pelayanan Kesehatan Rujukan JKN" }]
+            };
+          }
+        }
+      },
+
+      "dokter-spesialis": {
+        title: "Panduan Interaktif: Konsultasi Dokter Spesialis",
+        description: "Jawab 3 pertanyaan singkat di bawah ini agar alur pendaftaran yang tampil tepat sesuai kondisi Anda:",
+        questions: [
+          {
+            id: "penjamin",
+            question: "1. Jalur pembayaran/penjaminan kesehatan yang akan Anda gunakan?",
+            options: [
+              { label: "BPJS Kesehatan (JKN)", value: "bpjs", icon: "shield-check" },
+              { label: "Pasien Umum / Bayar Mandiri / Asuransi Swasta", value: "umum", icon: "credit-card" }
+            ]
+          },
+          {
+            id: "statusPasien",
+            question: "2. Apakah Anda pernah berobat ke Rumah Sakit tujuan tersebut sebelumnya?",
+            options: [
+              { label: "Pasien Baru (Belum punya Nomor Rekam Medis / No. RM di RS tsb)", value: "baru", icon: "user-plus" },
+              { label: "Pasien Lama (Sudah punya No. RM / Pernah berobat ke RS tsb)", value: "lama", icon: "user-check" }
+            ]
+          },
+          {
+            id: "fktpStatus",
+            question: "3. (Khusus BPJS) Apakah Anda sudah tahu lokasi FKTP (Puskesmas/Klinik) tempat Anda terdaftar?",
+            condition: (answers) => answers.penjamin === 'bpjs',
+            options: [
+              { label: "Sudah Tahu FKTP Saya", value: "tahu", icon: "map-pin" },
+              { label: "Belum Tahu / Ingin Cara Cek Lokasi FKTP Saya", value: "belum", icon: "help-circle" }
+            ]
+          }
+        ],
+        getResult: (answers) => {
+          const isBpjs = answers.penjamin === 'bpjs';
+          const isBaru = answers.statusPasien === 'baru';
+          const belumFktp = answers.fktpStatus === 'belum';
+
+          let steps = [];
+          let notes = [];
+
+          if (isBpjs) {
+            if (belumFktp) {
+              steps.push({
+                title: "Langkah 0: Ketahui Apa itu FKTP & Cara Cek Lokasi Terdaftar Anda",
+                desc: "FKTP (Fasilitas Kesehatan Tingkat Pertama) adalah Puskesmas, Klinik Pratama, atau Dokter Keluarga tempat BPJS/NIK Anda terdaftar. Berobat BPJS WAJIB dimulai dari FKTP ini. CARA CEK LOKASI FKTP ANDA: (1) Buka aplikasi Mobile JKN di menu 'Peserta', (2) Chat WhatsApp CHIKA BPJS di 08118750400, (3) Tunjukkan NIK KTP di Puskesmas terdekat untuk dicek petugas, atau (4) Telepon Care Center 165."
+              });
+            } else {
+              steps.push({
+                title: "Langkah 1: Pahami Fungsi FKTP Sebelum ke Rumah Sakit",
+                desc: "FKTP (Puskesmas/Klinik terdaftar Anda) adalah gerbang utama. Dokter FKTP akan memeriksa keluhan medis Anda. Jika dinilai membutuhkan penanganan lebih spesifik, dokter FKTP akan menerbitkan Surat Rujukan Online ke Dokter Spesialis di RS."
+              });
+            }
+
+            steps.push({
+              title: "Langkah 2: Datangi FKTP & Dapatkan Surat Rujukan Online JKN",
+              desc: "Datangi FKTP terdaftar Anda dan jelaskan keluhan. Jika dokter FKTP menerbitkan Surat Rujukan Online (sistem P-Care), surat tersebut akan berlaku selama 90 hari (3 bulan)."
+            });
+
+            steps.push({
+              title: "Langkah 3: Cek Jadwal Praktik Dokter Spesialis di RS Tujuan",
+              desc: "SEBELUM berangkat ke RS, pastikan jam & hari praktik dokter spesialis. Cara cek akurat: (1) Situs web resmi RS tujuan, (2) Akun Instagram / Media Sosial resmi RS, (3) WhatsApp Hotline / Call Center RS, atau (4) Aplikasi Mobile JKN di menu 'Pendaftaran Pelayanan'."
+            });
+
+            if (isBaru) {
+              steps.push({
+                title: "Langkah 4: Pendaftaran Fisik di RS (Khusus PASIEN BARU RS)",
+                desc: "PENTING UNTUK PASIEN BARU: Karena Anda BELUM MEMILIKI Nomor Rekam Medis (No. RM) di RS tersebut, Anda BELUM BISA mendaftar langsung dari rumah via Mobile JKN pada kunjungan pertama. ALUR FISIK DI RS: Datang lebih awal -> Ambil nomor antrean JKN -> Datangi Loket Admisi / Customer Service RS -> Serahkan KTP, Kartu BPJS, dan Surat Rujukan (cetak/digital). Petugas akan membuatkan berkas Rekam Medis resmi Anda."
+              });
+            } else {
+              steps.push({
+                title: "Langkah 4: Pendaftaran Online / Mandiri (Khusus PASIEN LAMA RS)",
+                desc: "Karena Anda sudah punya No. RM di RS tsb, Anda bisa mendaftar online dari rumah via Mobile JKN atau WA RS. Saat tiba di RS, Anda tinggal melakukan Fingerprint & Konfirmasi Kedatangan di mesin APM (Anjungan Pendaftaran Mandiri) tanpa antre panjang dari awal di loket pendaftaran."
+              });
+            }
+
+            steps.push({
+              title: "Langkah 5: Pemeriksaan di Ruang Poliklinik Spesialis",
+              desc: "Menujulah ke area Poliklinik Spesialis. Perawat poli akan memanggil nama Anda untuk mengukur tekanan darah (tensi), suhu tubuh, dan berat badan sebelum dipanggil masuk ke ruang konsultasi Dokter Spesialis."
+            });
+
+            steps.push({
+              title: "Langkah 6: Pengambilan Obat di Apotek RS",
+              desc: "Serahkan resep dokter ke Farmasi/Apotek RS. Seluruh obat sesuai indikasi medis ditanggung penuh oleh JKN tanpa biaya tambahan."
+            });
+
+            notes.push("Surat rujukan JKN berlaku selama 90 hari (3 bulan) sejak diterbitkan oleh dokter FKTP.");
+            notes.push("Pasien Baru wajib hadir fisik ke Loket Admisi RS pada kunjungan pertama untuk pembuatan Nomor Rekam Medis.");
+          } else {
+            // PASIEN UMUM
+            steps.push({
+              title: "Langkah 1: Pilih RS & Cek Jadwal Praktik Dokter Spesialis",
+              desc: "Pasien Umum TIDAK MEMBUTUHKAN surat rujukan dari Puskesmas/FKTP. Anda bebas memilih RS dan Dokter Spesialis manapun. Cek jadwal praktik dokter via Website Resmi RS, Instagram Resmi RS, atau WA Hotline RS."
+            });
+
+            steps.push({
+              title: "Langkah 2: Pendaftaran Pasien Umum (Online / Walk-in Direct)",
+              desc: isBaru 
+                ? "Sebagai Pasien Baru Umum, Anda bisa mendaftar via WA/Website RS atau langsung ke RS. Ambil nomor antrean Loket Pendaftaran Pasien Umum/Mandiri. Tunjukkan KTP untuk pembuatan Rekam Medis baru."
+                : "Sebagai Pasien Lama Umum, Anda dapat mendaftar online via WA/Website RS, atau scan barcode No. RM di Anjungan Mandiri RS saat tiba."
+            });
+
+            steps.push({
+              title: "Langkah 3: Pemeriksaan Tanda Vital & Konsultasi Dokter",
+              desc: "Tunggu pemanggilan nama di depan Poliklinik Spesialis. Perawat poli akan mengukur tensi & suhu tubuh sebelum dipanggil masuk konsultasi dengan dokter spesialis."
+            });
+
+            steps.push({
+              title: "Langkah 4: Pembayaran di Kasir & Pengambilan Obat",
+              desc: "Lakukan pembayaran di Kasir RS (Tunai / Debit / QRIS / Asuransi Swasta) lalu bawa resep ke Apotek RS untuk mengambil obat."
+            });
+
+            notes.push("Pasien umum bebas mendaftar langsung tanpa dibatasi sistem rujukan berjenjang JKN.");
+          }
+
+          return {
+            steps,
+            notes,
+            sources: [
+              { name: "Kementerian Kesehatan RI", url: "https://kemkes.go.id", title: "Panduan Pelayanan Kesehatan Berjenjang Rawat Jalan" },
+              { name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id", title: "Sistem Rujukan Pelayanan Kesehatan JKN" }
+            ]
+          };
+        }
+      },
+
+      "berobat-umum": {
+        title: "Panduan Interaktif: Berobat Umum Pertama Kali",
+        description: "Temukan alur pemeriksaan dasar di Fasilitas Kesehatan Tingkat Pertama (FKTP).",
+        questions: [
+          {
+            id: "penjamin",
+            question: "1. Jalur pembayaran yang akan Anda gunakan?",
+            options: [
+              { label: "BPJS Kesehatan / JKN", value: "bpjs", icon: "shield-check" },
+              { label: "Umum / Bayar Mandiri", value: "umum", icon: "credit-card" }
+            ]
+          }
+        ],
+        getResult: (answers) => {
+          const isBpjs = answers.penjamin === 'bpjs';
+          return {
+            steps: [
+              {
+                title: "Langkah 1: Datangi FKTP / Klinik Terdekat",
+                desc: isBpjs 
+                  ? "Datangi Puskesmas, Klinik Pratama, atau Dokter Keluarga tempat NIK/BPJS Anda terdaftar. Berobat umum JKN wajib di FKTP terdaftar Anda."
+                  : "Datangi Puskesmas, Klinik Umum 24 jam, atau Praktik Dokter Mandiri terdekat. Bebas tanpa batasan lokasi terdaftar."
+              },
+              {
+                title: "Langkah 2: Ambil Nomor Antrean & Registrasi",
+                desc: "Sebutkan keluhan medis Anda. Serahkan KTP/NIK (dan Kartu BPJS jika menggunakan JKN)."
+              },
+              {
+                title: "Langkah 3: Pemeriksaan Tanda Vital oleh Perawat",
+                desc: "Perawat akan memanggil Anda untuk mengukur tekanan darah (tensi), suhu tubuh, dan berat badan."
+              },
+              {
+                title: "Langkah 4: Konsultasi Dokter Umum",
+                desc: "Jelaskan gejala yang dirasakan. Dokter akan memberikan diagnosa dan resep obat. Jika butuh spesialis, dokter akan membuatkan Surat Rujukan."
+              },
+              {
+                title: "Langkah 5: Penerimaan Obat di Farmasi",
+                desc: "Ambil obat di unit Farmasi/Apotek faskes. Dengarkan penjelasan apoteker mengenai dosis dan aturan minum obat."
+              }
+            ],
+            notes: ["Untuk BPJS, pastikan status kepesertaan Anda aktif (tidak menunggak iuran)."],
+            sources: [
+              { name: "Kementerian Kesehatan RI", url: "https://kemkes.go.id", title: "Standar Layanan Puskesmas & Klinik Pratama" }
+            ]
+          };
+        }
+      },
+
+      "pemeriksaan-lab": {
+        title: "Panduan Interaktif: Pemeriksaan Laboratorium (Tes Darah / Urin)",
+        description: "Pahami syarat, persiapan puasa, serta apakah Anda memerlukan rujukan dokter atau bisa tes mandiri:",
+        questions: [
+          {
+            id: "penjamin",
+            question: "1. Jalur pembayaran/penjaminan yang akan Anda gunakan?",
+            options: [
+              { label: "BPJS Kesehatan / JKN", value: "bpjs", icon: "shield-check" },
+              { label: "Pasien Umum / Bayar Mandiri (misal di Prodia / Klinik Lab / Puskesmas)", value: "umum", icon: "credit-card" }
+            ]
+          },
+          {
+            id: "jenisTes",
+            question: "2. Jenis tes laboratorium yang ingin Anda lakukan?",
+            options: [
+              { label: "Cek Rutin Mandiri (Gula Darah, Kolesterol, Asam Urat, Tes Kehamilan, dsb)", value: "rutin", icon: "flask-conical" },
+              { label: "Tes Spesifik / Khusus Rujukan Dokter (misal Thyroid, Biopsi, Serologi Khusus)", value: "khusus", icon: "stethoscope" }
+            ]
+          }
+        ],
+        getResult: (answers) => {
+          const isBpjs = answers.penjamin === 'bpjs';
+          const isRutin = answers.jenisTes === 'rutin';
+
+          let steps = [];
+          let notes = [];
+
+          if (isBpjs) {
+            steps.push({
+              title: "Aturan Utama BPJS: WAJIB Memiliki Surat Pengantar Dokter FKTP/RS",
+              desc: "Sistem BPJS Kesehatan TIDAK MENANGGUNG tes laboratorium atas permintaan sendiri tanpa indikasi medis. Anda WAJIB berobat ke FKTP (Puskesmas/Klinik terdaftar) terlebih dahulu. Jika dokter menilai ada indikasi penyakit, dokter FKTP akan memberikan Surat Pengantar Lab ke laboratorium faskes atau RS rujukan."
+            });
+            steps.push({
+              title: "Langkah 1: Datangi FKTP Terdaftar & Dapatkan Surat Pengantar Lab",
+              desc: "Datangi Puskesmas/Klinik terdaftar Anda. Dokter akan memeriksa fisik dan mencetak/menerbitkan Formulir Permintaan Pemeriksaan Laboratorium."
+            });
+            steps.push({
+              title: "Langkah 2: Perhatikan Syarat Persiapan Pra-Lab (Puasa / Tidak)",
+              desc: "Tanyakan ke perawat/lab apakah tes memerlukan puasa. Untuk Tes Gula Darah Puasa dan Profil Lipid (Kolesterol Lengkap), Anda WAJIB berpuasa makan & minum manis selama 8–10 jam sebelum sampel darah diambil (hanya boleh minum air putih biasa)."
+            });
+            steps.push({
+              title: "Langkah 3: Pengambilan Sampel & Pengambilan Hasil",
+              desc: "Datangi unit Laboratorium faskes/RS. Petugas analis kesehatan akan mengambil sampel darah atau urin. Hasil lab akan dibaca oleh dokter pengirim untuk menentukan diagnosis dan resep obat."
+            });
+            notes.push("Seluruh pemeriksaan lab atas rekomendasi dokter FKTP/RS ditanggung penuh oleh BPJS tanpa biaya tambahan.");
+          } else {
+            // PASIEN UMUM / BAYAR MANDIRI
+            if (isRutin) {
+              steps.push({
+                title: "BISA LANGSUNG DATANG TANPA SURAT DOKTER! (Khusus Cek Rutin Mandiri)",
+                desc: "Jika Anda bayar mandiri (Umum), Anda BISA LANGSUNG datang ke Laboratorium Klinik Mandiri (seperti Prodia, Kimia Farma Lab, Pramita, Bio Medika, atau Unit Lab Puskesmas) untuk cek Gula Darah, Kolesterol, Asam Urat, Hb, Tes Urin Standar, atau Tes Kehamilan TANPA perlu membawa surat pengantar dokter."
+              });
+            } else {
+              steps.push({
+                title: "Disarankan Membawa Formulir Pengantar Dokter",
+                desc: "Untuk tes darah khusus (seperti Panel Hormon, Marker Kanker, atau Biopsi), disarankan membawa formulir pengantar dari dokter agar jenis parameter lab yang diperiksa tepat sesuai diagnosa yang dicari."
+              });
+            }
+
+            steps.push({
+              title: "Langkah 1: Persiapan Puasa Pra-Laboratorium (Jika Diperlukan)",
+              desc: "Jika hendak cek Kolesterol Lengkap atau Gula Darah Puasa, berpuasalah selama 8–10 jam di malam hari sebelum pemeriksaan. Hanya diperbolehkan minum air putih."
+            });
+
+            steps.push({
+              title: "Langkah 2: Datangi Laboratorium & Pendaftaran Kasir Umum",
+              desc: "Ambil nomor antrean di Laboratorium pilihan Anda. Pilih paket tes atau tunjukkan formulir pengantar. Lakukan pembayaran di Kasir Lab."
+            });
+
+            steps.push({
+              title: "Langkah 3: Pengambilan Sampel & Penerimaan Hasil (Bisa via WA / Email)",
+              desc: "Analis kesehatan akan mengambil sampel darah/urin Anda. Hasil pemeriksaan biasanya keluar dalam 2–6 jam dan dapat diunduh langsung via PDF WhatsApp/Email/Aplikasi Lab tersebut tanpa harus menunggu fisik di lokasi."
+            });
+
+            notes.push("Jika hasil tes darah Anda di luar rentang normal, konsultasikan lembar hasil tersebut ke Dokter Umum atau Spesialis.");
+          }
+
+          return {
+            steps,
+            notes,
+            sources: [
+              { name: "Kementerian Kesehatan RI", url: "https://kemkes.go.id", title: "Pedoman Penyelenggaraan Laboratorium Kesehatan" },
+              { name: "BPJS Kesehatan", url: "https://bpjs-kesehatan.go.id", title: "Panduan Penjaminan Penunjang Medis JKN" }
+            ]
+          };
+        }
+      },
+
+      "pemeriksaan-radiologi": {
+        title: "Panduan Interaktif: Pemeriksaan Radiologi (Rontgen, USG, CT-Scan, MRI)",
+        description: "Pahami aturan keselamatan radiasi, syarat rujukan, dan bisakah periksa radiologi mandiri:",
+        questions: [
+          {
+            id: "penjamin",
+            question: "1. Jalur pembayaran yang akan Anda gunakan?",
+            options: [
+              { label: "BPJS Kesehatan / JKN", value: "bpjs", icon: "shield-check" },
+              { label: "Pasien Umum / Bayar Mandiri / Asuransi Swasta", value: "umum", icon: "credit-card" }
+            ]
+          },
+          {
+            id: "jenisRadiologi",
+            question: "2. Jenis pencitraan radiologi yang Anda perlukan?",
+            options: [
+              { label: "Foto Rontgen (Dada/Thorax, Tulang, Gigi, dsb)", value: "rontgen", icon: "scan" },
+              { label: "USG (Kandungan, Abdomen/Perut)", value: "usg", icon: "scan" },
+              { label: "CT-Scan atau MRI (Pemindaian Detail Saraf/Organ)", value: "ctmri", icon: "scan" }
+            ]
+          }
+        ],
+        getResult: (answers) => {
+          const isBpjs = answers.penjamin === 'bpjs';
+          const isRontgenOrCt = answers.jenisRadiologi === 'rontgen' || answers.jenisRadiologi === 'ctmri';
+
+          let steps = [];
+          let notes = [];
+
+          steps.push({
+            title: "ATURAN KESELAMATAN RADIASI: Bisakah Periksa Radiologi Mandiri Tanpa Dokter?",
+            desc: isRontgenOrCt
+              ? "JAWABAN TEGAS: TIDAK BISA SEMBARANGAN. Untuk Foto Rontgen, CT-Scan, dan MRI, petugas Instalasi Radiologi WAJIB meminta Surat Pengantar / Pengantar Radiologi dari Dokter. Sinar-X adalah radiasi pengion yang memiliki dosis ketat, sehingga harus ada rekomendasi indikasi medis resmi demi keamanan tubuh Anda."
+              : "KHUSUS USG KANDUNGAN / KEBIDANAN: Pasien Umum bisa langsung mendaftar ke Klinik USG / Dokter Spesialis Obgyn tanpa rujukan. Namun untuk USG Organ Dalam Abdomen (hati/empedu/ginjal), tetap disarankan membawa pengantar dokter."
+          });
+
+          if (isBpjs) {
+            steps.push({
+              title: "Langkah 1: Konsultasi Dokter FKTP / Dokter Spesialis RS",
+              desc: "Berobat ke FKTP (Puskesmas/Klinik). Jika dokter mencurigai ada kelainan organ/tulang, dokter FKTP memberikan Rujukan ke RS. Di RS, Dokter Spesialis RS akan mencetak Surat Pengantar Radiologi JKN."
+            });
+
+            steps.push({
+              title: "Langkah 2: Pendaftaran di Instalasi Radiologi RS",
+              desc: "Bawa Surat Pengantar Radiologi ke bagian Loket Radiologi RS. Petugas akan menjadwalkan jam tindakan (beberapa Rontgen/USG bisa langsung hari itu, namun CT-Scan/MRI memerlukan penjadwalan khusus)."
+            });
+
+            steps.push({
+              title: "Langkah 3: Pelaksanaan Tindakan Pemindaian Radiologi",
+              desc: "Lepaskan benda berbahan logam (kalung, jam, kancing besi, bra kawat). Ikuti arahan Radiografer di ruang pemindaian."
+            });
+
+            steps.push({
+              title: "Langkah 4: Pembacaan Hasil oleh Dokter Spesialis Radiologi (Expertise)",
+              desc: "Hasil foto film/digital akan dibaca dan disimpulkan oleh Dokter Spesialis Radiologi (Sp.Rad). Lembar bacaan resmi ini akan dikirimkan kembali ke Dokter Spesialis Pengirim Anda."
+            });
+
+            notes.push("Pemeriksaan radiologi atas indikasi medis dokter ditanggung penuh oleh BPJS Kesehatan.");
+          } else {
+            // PASIEN UMUM
+            steps.push({
+              title: "Langkah 1: Dapatkan Surat Pengantar Radiologi dari Dokter",
+              desc: "Konsultasikan keluhan fisik Anda ke Dokter Umum di Klinik/Puskesmas atau Dokter Spesialis di RS untuk mendapatkan Lembar Permintaan Radiologi resmi."
+            });
+
+            steps.push({
+              title: "Langkah 2: Datangi Instalasi Radiologi RS / Klinik Radiologi Khusus",
+              desc: "Bawa lembar pengantar dokter ke Kasir Radiologi. Lakukan pembayaran biaya Rontgen/USG/CT-Scan."
+            });
+
+            steps.push({
+              title: "Langkah 3: Prosedur Pemindaian & Terima Lembar Film / CD Hasil",
+              desc: "Petugas Radiografer melakukan pemindaian. Hasil foto film/CD beserta lembar ekspertise Dokter Sp.Rad dapat diambil dalam 1–3 jam atau hari berikutnya."
+            });
+
+            notes.push("Pastikan memberi tahu petugas jika Anda sedang hamil atau menduga sedang hamil sebelum tindakan sinar-X/Rontgen.");
+          }
+
+          return {
+            steps,
+            notes,
+            sources: [
+              { name: "Kementerian Kesehatan RI", url: "https://kemkes.go.id", title: "Standar Keselamatan Radiologi & Pencitraan Medis" },
+              { name: "BAPETEN (Badan Pengawas Tenaga Nuklir)", url: "https://bapeten.go.id", title: "Pedoman Keselamatan Radiasi Medik" }
+            ]
+          };
+        }
+      }
+    };
+
+    const smartSearch = (query) => {
+      if (!query || query.trim().length === 0) return { scenarios: [], glossary: [], articles: [], suggestion: null };
+
+      const cleanQuery = query.toLowerCase().trim();
+      const words = cleanQuery.split(/\s+/);
+
+      const intentMap = [
+        { keys: ["hak", "pasien", "rekam medis", "rm", "resume", "second opinion", "komplain", "pengaduan", "menolak"], targetId: "hak-pasien-rekam-medis" },
+        { keys: ["luar kota", "luar domisili", "mudik", "liburan", "dinas", "pindah sementara", "3 kali", "berobat di luar kota"], targetId: "luar-domisili" },
+        { keys: ["ugd", "igd", "gawat darurat", "darurat", "tanpa rujukan", "langsung rs", "sesak nafas", "nyeri dada"], targetId: "gawat-darurat-bpjs" },
+        { keys: ["pandawa", "wa bpjs", "whatsapp bpjs", "08118165165", "ubah faskes wa", "rehab", "cicil bpjs"], targetId: "pandawa-layanan" },
+        { keys: ["dicover bpjs", "ditanggung bpjs", "operasi bpjs", "gigi bpjs", "psikiater bpjs", "kacamata bpjs", "cuci darah", "tidak dicover"], targetId: "penyakit-cover-bpjs" },
+        { keys: ["spesialis", "cek spesialis", "periksa spesialis", "dokter spesialis", "ke spesialis", "spesialis caranya gmn"], targetId: "dokter-spesialis" },
+        { keys: ["berobat", "sakit", "periksa", "pusing", "demam", "puskesmas", "klinik", "berobat umum"], targetId: "berobat-umum" },
+        { keys: ["rujukan", "surat rujukan", "minta rujukan", "p-care", "cara dapet rujukan", "surat kontrol", "obat kosong", "parsial"], targetId: "butuh-rujukan" },
+        { keys: ["lab", "darah", "urin", "laboratorium", "tes darah", "cek gula darah", "kolesterol", "prodia"], targetId: "pemeriksaan-lab" },
+        { keys: ["rontgen", "usg", "ct scan", "mri", "radiologi", "foto rontgen"], targetId: "pemeriksaan-radiologi" }
+      ];
+
+      let matchedScenarios = NAVIGATION_DATA.filter(item => {
+        const titleMatch = item.title.toLowerCase().includes(cleanQuery);
+        const keywordMatch = item.keywords && item.keywords.some(k => cleanQuery.includes(k) || k.includes(cleanQuery));
+        return titleMatch || keywordMatch;
+      });
+
+      intentMap.forEach(intent => {
+        if (intent.keys.some(k => cleanQuery.includes(k))) {
+          const found = NAVIGATION_DATA.find(n => n.id === intent.targetId);
+          if (found && !matchedScenarios.some(m => m.id === found.id)) {
+            matchedScenarios.unshift(found);
+          }
+        }
+      });
+
+      let matchedGlossary = GLOSSARY_DATA.filter(g => 
+        g.term.toLowerCase().includes(cleanQuery) ||
+        g.fullName.toLowerCase().includes(cleanQuery) ||
+        (g.keywords && g.keywords.some(k => cleanQuery.includes(k) || k.includes(cleanQuery)))
+      );
+
+      let matchedArticles = EDUCATION_ARTICLES.filter(a => 
+        a.title.toLowerCase().includes(cleanQuery) ||
+        a.summary.toLowerCase().includes(cleanQuery)
+      );
+
+      // Smart Suggestion Logic
+      let suggestion = null;
+      if (cleanQuery.includes("lab") || cleanQuery.includes("darah") || cleanQuery.includes("laborat")) {
+        suggestion = "Panduan Pemeriksaan Laboratorium & Tes Darah Mandiri";
+      } else if (cleanQuery.includes("spesialis") || cleanQuery.includes("dokter")) {
+        suggestion = "Panduan Pendaftaran Dokter Spesialis (BPJS vs Umum)";
+      } else if (cleanQuery.includes("rujukan") || cleanQuery.includes("surat")) {
+        suggestion = "Panduan Surat Rujukan Online JKN & Surat Kontrol RS";
+      } else if (cleanQuery.includes("hak") || cleanQuery.includes("rekam") || cleanQuery.includes("komplain")) {
+        suggestion = "Hak-Hak Pasien, Resume Medis & Pengaduan RS";
+      } else if (cleanQuery.includes("luar") || cleanQuery.includes("kota")) {
+        suggestion = "Panduan Berobat di Luar Domisili / Luar Kota";
+      }
+
+      return {
+        scenarios: matchedScenarios,
+        glossary: matchedGlossary,
+        articles: matchedArticles,
+        suggestion: suggestion
+      };
+    };
+
+    function App() {
+      const [currentTab, setCurrentTab] = useState('beranda');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [selectedScenario, setSelectedScenario] = useState(null);
+      const [isDarkMode, setIsDarkMode] = useState(false);
+      const [isModeSederhana, setIsModeSederhana] = useState(false);
+      const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+      const [visitorCount, setVisitorCount] = useState(1284);
+
+      useEffect(() => {
+        const savedTheme = localStorage.getItem('arahsehat_theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          setIsDarkMode(true);
+          document.documentElement.classList.add('dark');
+        } else {
+          setIsDarkMode(false);
+          document.documentElement.classList.remove('dark');
+        }
+
+        // Penghitung jumlah pengakses realtime & persisten secara aman tanpa data pribadi
+        const localViews = localStorage.getItem('arahsehat_visits');
+        let count = localViews ? parseInt(localViews) : 1284;
+        count += 1;
+        localStorage.setItem('arahsehat_visits', count.toString());
+        setVisitorCount(count);
+      }, []);
+
+      const toggleTheme = () => {
+        if (isDarkMode) {
+          setIsDarkMode(false);
+          document.documentElement.classList.remove('dark');
+          localStorage.setItem('arahsehat_theme', 'light');
+        } else {
+          setIsDarkMode(true);
+          document.documentElement.classList.add('dark');
+          localStorage.setItem('arahsehat_theme', 'dark');
+        }
+      };
+
+      const toggleModeSederhana = () => {
+        setIsModeSederhana(!isModeSederhana);
+        if (!isModeSederhana) {
+          document.body.classList.add('mode-sederhana');
+        } else {
+          document.body.classList.remove('mode-sederhana');
+        }
+      };
+
+      const searchResults = useMemo(() => smartSearch(searchQuery), [searchQuery]);
+
+      const navigateToScenario = (scenario) => {
+        setSelectedScenario(scenario);
+        setCurrentTab('navigasi');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const handleShortcutClick = (queryText) => {
+        setSearchQuery(queryText);
+        const results = smartSearch(queryText);
+        if (results.scenarios.length > 0) {
+          setSelectedScenario(results.scenarios[0]);
+          setCurrentTab('navigasi');
+        }
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col justify-between">
+          {/* TOP SAFETY DISCLAIMER BAR */}
+          <div className="bg-emerald-800 text-white text-xs sm:text-sm py-2 px-4">
+            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Icon name="shield-alert" className="w-4 h-4 text-emerald-300 flex-shrink-0" />
+                <span><strong>Catatan Penting:</strong> ArahSehat menyediakan informasi & navigasi umum. Bukan pengganti diagnosis dokter. Dalam kondisi darurat, hubungi faskes/119.</span>
+              </div>
+              <button 
+                onClick={toggleModeSederhana}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-700 hover:bg-emerald-600 text-[11px] font-semibold transition-colors ml-auto"
+              >
+                <Icon name="eye" className="w-3.5 h-3.5" />
+                <span>{isModeSederhana ? 'Matikan Mode Sederhana' : 'Mode Teks Besar'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* HEADER & NAVBAR */}
+          <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+              <button onClick={() => { setCurrentTab('beranda'); setSelectedScenario(null); }} className="text-left">
+                <LogoSVG showTagline={true} />
+              </button>
+
+              <nav className="hidden md:flex items-center gap-1 lg:gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                {[
+                  { id: 'beranda', label: 'Beranda', icon: 'home' },
+                  { id: 'navigasi', label: 'Navigasi', icon: 'compass' },
+                  { id: 'glosarium', label: 'Glosarium', icon: 'book-open' },
+                  { id: 'edukasi', label: 'Edukasi', icon: 'graduation-cap' },
+                  { id: 'sumber', label: 'Sumber Resmi', icon: 'shield-check' },
+                  { id: 'tentang', label: 'Tentang', icon: 'info' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setCurrentTab(tab.id);
+                      if (tab.id !== 'navigasi') setSelectedScenario(null);
+                    }}
+                    className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 ${
+                      currentTab === tab.id
+                        ? 'bg-brand-green text-white shadow-sm font-bold'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    <Icon name={tab.icon} className="w-4 h-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </nav>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleTheme}
+                  aria-label="Toggle Theme"
+                  className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Icon name={isDarkMode ? 'sun' : 'moon'} className="w-5 h-5 text-amber-500" />
+                </button>
+
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  aria-label="Open Menu"
+                  className="md:hidden p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                >
+                  <Icon name={mobileMenuOpen ? 'x' : 'menu'} className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {mobileMenuOpen && (
+              <div className="md:hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-4 space-y-2 animate-fadeIn">
+                {[
+                  { id: 'beranda', label: 'Beranda', icon: 'home' },
+                  { id: 'navigasi', label: 'Navigasi Layanan', icon: 'compass' },
+                  { id: 'glosarium', label: 'Glosarium Istilah', icon: 'book-open' },
+                  { id: 'edukasi', label: 'Edukasi Kesehatan', icon: 'graduation-cap' },
+                  { id: 'sumber', label: 'Sumber Resmi', icon: 'shield-check' },
+                  { id: 'tentang', label: 'Tentang ArahSehat', icon: 'info' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setCurrentTab(tab.id);
+                      setMobileMenuOpen(false);
+                      if (tab.id !== 'navigasi') setSelectedScenario(null);
+                    }}
+                    className={`w-full px-4 py-3 rounded-xl font-medium text-left flex items-center gap-3 ${
+                      currentTab === tab.id
+                        ? 'bg-brand-green text-white font-bold'
+                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <Icon name={tab.icon} className="w-5 h-5" />
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </header>
+
+          {}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* TAB: BERANDA */}
+            {currentTab === 'beranda' && (
+              <div className="space-y-10 animate-fadeIn">
+                {/* HERO SECTION WITH CLEAR START DIRECTION */}
+                <div className="relative rounded-3xl bg-gradient-to-br from-emerald-50 via-teal-50/50 to-blue-50 dark:from-slate-800 dark:via-slate-800/80 dark:to-slate-900 border border-emerald-100 dark:border-slate-700 p-6 sm:p-10 overflow-hidden shadow-sm space-y-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    <div className="lg:col-span-7 space-y-4">
+                      {/* PROMINENT ONBOARDING DIRECTION BADGE */}
+                      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-green text-white text-xs font-extrabold uppercase tracking-wider shadow-xs">
+                        <Icon name="compass" className="w-4 h-4 text-emerald-200" />
+                        <span>Pilih Situasi Anda di Bawah atau Gunakan Pencarian</span>
+                      </div>
+                      
+                      <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white leading-tight">
+                        Informasi Kesehatan <br className="hidden sm:inline" />
+                        <span className="text-brand-green">Lebih Mudah Dipahami</span>, <br />
+                        Lebih Dekat dengan Anda.
+                      </h1>
+
+                      <p className="text-slate-600 dark:text-slate-300 text-base sm:text-lg leading-relaxed max-w-2xl">
+                        ArahSehat membantu Anda memahami prosedur berobat, hak-hak pasien, dan menemukan arah dalam mengakses pelayanan medis dengan cara yang sederhana, terstruktur, dan terpercaya.
+                      </p>
+
+                      {/* SMART SEARCH BAR */}
+                      <div className="space-y-3 pt-2">
+                        <div className="relative max-w-2xl">
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Ketik kata kunci (misal: gw mau cek ke spesialis, hak rekam medis, obat kosong)..."
+                            className="w-full pl-12 pr-28 py-4 text-slate-800 dark:text-white bg-white dark:bg-slate-900 border-2 border-emerald-300 dark:border-slate-600 rounded-2xl shadow-sm focus:outline-none focus:border-brand-green text-sm sm:text-base transition-all"
+                          />
+                          <Icon name="search" className="w-6 h-6 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                          <button
+                            onClick={() => {
+                              if (searchQuery.trim().length > 0) {
+                                const res = smartSearch(searchQuery);
+                                if (res.scenarios.length > 0) {
+                                  setSelectedScenario(res.scenarios[0]);
+                                  setCurrentTab('navigasi');
+                                }
+                              }
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2.5 bg-brand-green hover:bg-brand-green-dark text-white font-bold rounded-xl text-sm transition-all shadow-sm"
+                          >
+                            Cari
+                          </button>
+                        </div>
+
+                        {/* RECOMMENDATION SHORTCUT CHIPS */}
+                        <div className="space-y-2">
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <Icon name="zap" className="w-3.5 h-3.5 text-amber-500" />
+                            <span>Rekomendasi Pertanyaan Siap-Klik:</span>
+                          </span>
+                          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                            {[
+                              { label: "Hak Pasien Atas Rekam Medis & SATUSEHAT", query: "hak pasien rekam medis" },
+                              { label: "Penyakit & tindakan yang dicover BPJS", query: "penyakit dan tindakan yang ditanggung bpjs" },
+                              { label: "WA PANDAWA BPJS (08118165165)", query: "layanan wa pandawa bpjs 08118165165" },
+                              { label: "Berobat di luar kota / luar domisili", query: "berobat di luar domisili atau luar kota" },
+                              { label: "Gawat Darurat UGD tanpa rujukan", query: "kondisi gawat darurat ugd igd" },
+                              { label: "Solusi Obat RS Kosong / Disuruh Beli di Luar", query: "obat kosong rujukan parsial" },
+                              { label: "Cara periksa dokter spesialis", query: "gw mau cek ke spesialis caranya gmn" },
+                              { label: "Bisa tes darah tanpa rujukan?", query: "pemeriksaan laboratorium" },
+                              { label: "Bisa foto rontgen tanpa dokter?", query: "pemeriksaan radiologi" }
+                            ].map((chip, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleShortcutClick(chip.query)}
+                                className="px-3.5 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-brand-green hover:text-brand-green whitespace-nowrap shadow-2xs transition-all"
+                              >
+                                {chip.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-5 flex justify-center">
+                      <div className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-lg text-center space-y-4">
+                        <div className="w-20 h-20 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
+                          <Icon name="heart-handshake" className="w-10 h-10 text-brand-green" />
+                        </div>
+                        <h3 className="font-bold text-slate-900 dark:text-white text-lg">Platform Ramah Masyarakat Indonesia</h3>
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                          Dirancang inklusif untuk lansia, remaja, orang tua, dan masyarakat umum tanpa istilah medis yang membingungkan.
+                        </p>
+                        <div className="pt-2 flex items-center justify-center gap-4 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                          <span className="flex items-center gap-1"><Icon name="check-circle" className="w-4 h-4" /> Tanpa Login</span>
+                          <span className="flex items-center gap-1"><Icon name="shield-check" className="w-4 h-4" /> Bebas NIK</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SEARCH RESULTS OVERLAY & SUGGESTION BOX */}
+                {searchQuery.trim().length > 0 && (
+                  <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-emerald-200 dark:border-slate-700 shadow-md space-y-6 animate-fadeIn">
+                    <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
+                      <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                        <Icon name="search" className="w-5 h-5 text-brand-green" />
+                        <span>Hasil Pencarian untuk: "{searchQuery}"</span>
+                      </h3>
+                      <button onClick={() => setSearchQuery('')} className="text-xs text-slate-500 hover:text-red-500 font-semibold">Bersihkan Filter</button>
+                    </div>
+
+                    {searchResults.suggestion && (
+                      <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <Icon name="sparkles" className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-200">
+                            <strong>Mungkin maksud Anda:</strong> {searchResults.suggestion}?
+                          </span>
+                        </div>
+                        <button 
+                          onClick={() => handleShortcutClick(searchResults.suggestion)}
+                          className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs whitespace-nowrap shadow-xs"
+                        >
+                          Buka Rekomendasi
+                        </button>
+                      </div>
+                    )}
+
+                    {searchResults.scenarios.length === 0 && searchResults.glossary.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500 space-y-3">
+                        <Icon name="help-circle" className="w-10 h-10 mx-auto text-slate-300" />
+                        <p className="text-sm font-semibold">Belum menemukan kata kunci yang persis. Coba klik situasi utama di bawah ini.</p>
+                        <div className="pt-2">
+                          <button onClick={() => setCurrentTab('navigasi')} className="px-4 py-2 bg-brand-green text-white font-bold text-xs rounded-xl">
+                            Lihat Semua Skenario Navigasi
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {searchResults.scenarios.length > 0 && (
+                          <div className="space-y-2">
+                            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase">Skenario Layanan Terkait:</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {searchResults.scenarios.map(s => (
+                                <button
+                                  key={s.id}
+                                  onClick={() => navigateToScenario(s)}
+                                  className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand-green text-left bg-slate-50 dark:bg-slate-900 transition-all flex items-start gap-3 group"
+                                >
+                                  <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-brand-green mt-0.5">
+                                    <Icon name={s.icon || 'compass'} className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-brand-green">{s.title}</h4>
+                                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mt-1">{s.summary}</p>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {searchResults.glossary.length > 0 && (
+                          <div className="space-y-2 pt-2">
+                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">Istilah Glosarium Terkait:</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {searchResults.glossary.map(g => (
+                                <div key={g.term} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-brand-green text-sm">{g.term} — {g.fullName}</span>
+                                  </div>
+                                  <p className="text-xs text-slate-600 dark:text-slate-300">{g.simpleExplanation}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* PRIMARY SCENARIOS DIRECT ACCESS (PLACED AT TOP FOR INSTANT REACH) */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                        <Icon name="compass" className="w-4 h-4" />
+                        <span>Mulai dari Sini — Fitur Utama</span>
+                      </div>
+                      <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">Pilih Situasi Kesehatan Anda</h2>
+                    </div>
+                    <button onClick={() => setCurrentTab('navigasi')} className="text-xs font-bold text-brand-green hover:underline">Lihat Semua Skenario</button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {NAVIGATION_DATA.map(scenario => (
+                      <div
+                        key={scenario.id}
+                        onClick={() => navigateToScenario(scenario)}
+                        className="p-5 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-brand-green cursor-pointer transition-all flex items-center justify-between group shadow-2xs hover:shadow-md"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-brand-green flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                            <Icon name={scenario.icon} className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">{scenario.category}</span>
+                            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base group-hover:text-brand-green transition-colors">{scenario.title}</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{scenario.summary}</p>
+                          </div>
+                        </div>
+                        <Icon name="chevron-right" className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CORE FEATURE CARDS */}
+                <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Icon name="layout-grid" className="w-5 h-5 text-brand-green" />
+                    <span>Jelajahi Modul Informasi Lainnya</span>
+                  </h2>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[
+                      {
+                        title: "Navigasi Layanan Kesehatan",
+                        desc: "Panduan langkah demi langkah saat ingin berobat, menemui spesialis, atau mengurus rujukan.",
+                        icon: "compass",
+                        tab: "navigasi"
+                      },
+                      {
+                        title: "Glosarium Kesehatan",
+                        desc: "Terjemahan istilah medis (FKTP, FKRTL, Anamnesis) ke dalam bahasa sehari-hari.",
+                        icon: "book-open",
+                        tab: "glosarium"
+                      },
+                      {
+                        title: "Edukasi Kesehatan",
+                        desc: "Artikel ringkas menyaring fakta dari mitos kesehatan dan panduan informasi terpercaya.",
+                        icon: "graduation-cap",
+                        tab: "edukasi"
+                      },
+                      {
+                        title: "Sumber Terpercaya",
+                        desc: "Tautan terverifikasi ke portal resmi Kemenkes RI, BPJS Kesehatan, dan WHO.",
+                        icon: "shield-check",
+                        tab: "sumber"
+                      }
+                    ].map((card, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => setCurrentTab(card.tab)}
+                        className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs hover:border-brand-green hover:shadow-md transition-all cursor-pointer flex flex-col justify-between space-y-4 group"
+                      >
+                        <div className="space-y-3">
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-brand-green flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Icon name={card.icon} className="w-6 h-6" />
+                          </div>
+                          <h3 className="font-bold text-slate-900 dark:text-white text-lg group-hover:text-brand-green transition-colors">
+                            {card.title}
+                          </h3>
+                          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">
+                            {card.desc}
+                          </p>
+                        </div>
+                        <div className="inline-flex items-center gap-1 text-xs font-extrabold text-brand-green group-hover:translate-x-1 transition-transform">
+                          <span>Buka Fitur</span>
+                          <Icon name="arrow-right" className="w-4 h-4" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: NAVIGASI */}
+            {currentTab === 'navigasi' && (
+              <div className="space-y-8 animate-fadeIn">
+                {!selectedScenario ? (
+                  <div className="space-y-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase">
+                        <Icon name="compass" className="w-3.5 h-3.5" />
+                        <span>Panduan Navigasi Kesehatan</span>
+                      </div>
+                      <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">Anda sedang mencari arah layanan kesehatan apa?</h1>
+                      <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base">
+                        Pilih situasi kesehatan yang paling sesuai di bawah ini untuk melihat tanya-jawab interaktif dan alur langkah yang tepat.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {NAVIGATION_DATA.map(scen => (
+                        <div
+                          key={scen.id}
+                          onClick={() => setSelectedScenario(scen)}
+                          className="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-green transition-all cursor-pointer space-y-3 group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase">{scen.category}</span>
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:bg-brand-green group-hover:text-white transition-colors">
+                              <Icon name="arrow-right" className="w-4 h-4" />
+                            </div>
+                          </div>
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-brand-green transition-colors">{scen.title}</h3>
+                          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">{scen.summary}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <InteractiveScenarioView 
+                    scenario={selectedScenario} 
+                    onBack={() => setSelectedScenario(null)} 
+                  />
+                )}
+              </div>
+            )}
+
+            {/* TAB: GLOSARIUM */}
+            {currentTab === 'glosarium' && (
+              <div className="space-y-8 animate-fadeIn">
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase">
+                    <Icon name="book-open" className="w-3.5 h-3.5" />
+                    <span>Kamus Medis Bahasa Awam</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">Glosarium Istilah Kesehatan</h1>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base">
+                    Pahami istilah medis membingungkan (FKTP, Hak Pasien, Resume Medis, SATUSEHAT) dalam bahasa sehari-hari yang singkat dan mudah dimengerti.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {GLOSSARY_DATA.map(item => (
+                    <div key={item.term} className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                      <div className="flex items-start justify-between gap-2 border-b pb-3 border-slate-100 dark:border-slate-700">
+                        <div>
+                          <span className="text-2xl font-extrabold text-brand-green">{item.term}</span>
+                          <h3 className="text-xs font-bold text-slate-500 uppercase">{item.fullName}</h3>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300">{item.category}</span>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase">Penjelasan Sederhana:</h4>
+                        <p className="text-slate-700 dark:text-slate-200 text-sm leading-relaxed">{item.simpleExplanation}</p>
+                      </div>
+
+                      <div className="space-y-1 bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <span className="text-xs font-bold text-slate-500 uppercase">Mengapa Penting Diketahui?</span>
+                        <p className="text-xs text-slate-600 dark:text-slate-300">{item.whyMatters}</p>
+                      </div>
+
+                      <div className="pt-2 text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
+                        <span>Sumber: {item.sources[0]?.name}</span>
+                        <span>Ditinjau: {item.lastReviewed}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB: EDUKASI */}
+            {currentTab === 'edukasi' && (
+              <div className="space-y-8 animate-fadeIn">
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-xs font-bold uppercase">
+                    <Icon name="graduation-cap" className="w-3.5 h-3.5" />
+                    <span>Literasi Informasi Kesehatan</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">Panduan & Edukasi Kesehatan</h1>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base">
+                    Pelajari hak-hak pasien, cara menyaring kabar hoaks kesehatan, dan mengenali informasi resmi yang aman untuk keluarga Anda.
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  {EDUCATION_ARTICLES.map(art => (
+                    <div key={art.id} className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-xs space-y-6">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                          <span className="font-bold text-brand-green uppercase">{art.category}</span>
+                          <span>•</span>
+                          <span>Waktu baca {art.readTime}</span>
+                        </div>
+                        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{art.title}</h2>
+                        <p className="text-slate-600 dark:text-slate-300 text-sm">{art.summary}</p>
+                      </div>
+
+                      <div className="space-y-4 border-t pt-4 border-slate-100 dark:border-slate-700">
+                        {art.content.map((sec, idx) => (
+                          <div key={idx} className="space-y-1">
+                            <h3 className="font-bold text-slate-800 dark:text-white text-base">{sec.heading}</h3>
+                            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">{sec.body}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900 text-xs text-emerald-900 dark:text-emerald-300 font-medium">
+                        <strong>Poin Utama:</strong> {art.keyTakeaway}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB: SUMBER RESMI */}
+            {currentTab === 'sumber' && (
+              <div className="space-y-8 animate-fadeIn">
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-xs font-bold uppercase">
+                    <Icon name="shield-check" className="w-3.5 h-3.5" />
+                    <span>Direktori Terverifikasi</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">Sumber Informasi Kesehatan Terpercaya</h1>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base">
+                    Gunakan selalu portal resmi pemerintah dan institusi profesional di bawah ini untuk memverifikasi berita kesehatan.
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  {TRUSTED_SOURCES.map((cat, idx) => (
+                    <div key={idx} className="space-y-4">
+                      <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{cat.category}</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {cat.items.map((item, iIdx) => (
+                          <div key={iIdx} className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-4">
+                            <div className="space-y-2">
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold uppercase">{item.tag}</span>
+                              <h3 className="font-bold text-slate-900 dark:text-white text-base">{item.name}</h3>
+                              <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">{item.description}</p>
+                            </div>
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-green hover:underline pt-2 border-t border-slate-100 dark:border-slate-700"
+                            >
+                              <span>Kunjungi Situs Resmi</span>
+                              <Icon name="external-link" className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB: TENTANG */}
+            {currentTab === 'tentang' && (
+              <div className="space-y-8 animate-fadeIn">
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-xs space-y-6">
+                  <LogoSVG showTagline={true} className="h-12" />
+                  <div className="space-y-3">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">Tentang Inisiatif ArahSehat</h1>
+                    <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed">
+                      ArahSehat adalah platform informasi dan navigasi kesehatan independen yang berfokus pada peningkatan literasi kesehatan masyarakat Indonesia. Kami membantu warga memahami istilah medis, hak-hak pasien, dan prosedur pelayanan kesehatan secara jelas dan manusiawi.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <div className="p-5 rounded-2xl bg-emerald-50 dark:bg-slate-900 border border-emerald-100 dark:border-slate-800 space-y-2">
+                      <h3 className="font-bold text-brand-green text-base">Prinsip ArahSehat</h3>
+                      <ul className="text-xs text-slate-700 dark:text-slate-300 space-y-1 list-disc list-inside">
+                        <li>Sederhana & Tanpa Istilah Birokrasi</li>
+                        <li>Terpercaya & Bersumber Resmi</li>
+                        <li>Inklusif untuk Semua Kalangan Usia</li>
+                        <li>Melindungi Privasi (Tanpa Login & Tanpa Rekam Medis)</li>
+                      </ul>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-amber-50 dark:bg-slate-900 border border-amber-100 dark:border-slate-800 space-y-2">
+                      <h3 className="font-bold text-amber-800 dark:text-amber-400 text-base">Batasan Tanggung Jawab</h3>
+                      <p className="text-xs text-amber-900 dark:text-amber-300 leading-relaxed">
+                        ArahSehat BUKAN alat diagnosis, BUKAN pengganti dokter, BUKAN pemberi resep obat. Kami fokus murni pada informasi dan arah navigasi pelayanan.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+
+          {}
+          <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-10 transition-colors">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <LogoSVG showTagline={true} />
+                
+                {/* PROMINENT NAV SHORTCUTS IN FOOTER */}
+                <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold">
+                  {[
+                    { id: 'beranda', label: 'Beranda' },
+                    { id: 'navigasi', label: 'Navigasi Layanan' },
+                    { id: 'glosarium', label: 'Glosarium' },
+                    { id: 'edukasi', label: 'Edukasi' },
+                    { id: 'sumber', label: 'Sumber Resmi' },
+                    { id: 'tentang', label: 'Tentang' }
+                  ].map(link => (
+                    <button
+                      key={link.id}
+                      onClick={() => {
+                        setCurrentTab(link.id);
+                        setSelectedScenario(null);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-brand-green hover:text-white text-slate-700 dark:text-slate-200 font-bold transition-all shadow-2xs border border-slate-200/80 dark:border-slate-700"
+                    >
+                      {link.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Estimasi Pengakses Platform: <strong>{visitorCount.toLocaleString('id-ID')} Pengunjung Sesi</strong> (Privasi Aman • Tanpa Data Pribadi)</span>
+                </div>
+                <p>© 2026 ArahSehat Indonesia. Pahami • Temukan • Navigasikan.</p>
+              </div>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    function InteractiveScenarioView({ scenario, onBack }) {
+      const flowConfig = INTERACTIVE_FLOWS[scenario.id];
+      const [answers, setAnswers] = useState({});
+      const [showSurveyModal, setShowSurveyModal] = useState(false);
+      const [surveySubmitted, setSurveySubmitted] = useState(false);
+      const [surveyStatus, setSurveyStatus] = useState(null);
+
+      useEffect(() => {
+        setAnswers({});
+        setShowSurveyModal(false);
+        setSurveySubmitted(false);
+        setSurveyStatus(null);
+      }, [scenario.id]);
+
+      const handleSelectOption = (qId, val) => {
+        setAnswers(prev => ({ ...prev, [qId]: val }));
+      };
+
+      const result = useMemo(() => {
+        if (!flowConfig) return null;
+        return flowConfig.getResult(answers);
+      }, [flowConfig, answers]);
+
+      const handleBackClick = () => {
+        setShowSurveyModal(true);
+      };
+
+      const handleSurveySubmit = async (isHelpful) => {
+        const statusVal = isHelpful ? 'helpful' : 'unhelpful';
+        setSurveyStatus(statusVal);
+        setSurveySubmitted(true);
+
+        const payload = {
+          timestamp: new Date().toISOString(),
+          scenarioId: scenario.id,
+          scenarioTitle: scenario.title,
+          isHelpful: isHelpful,
+          preComprehensionRate: "Rendah (Sebelum Membaca)",
+          postComprehensionRate: isHelpful ? "Tinggi (Sangat Paham)" : "Perlu Penjelasan Lebih",
+          userAnswers: answers
+        };
+
+        if (GAS_SURVEY_URL && GAS_SURVEY_URL.trim() !== "") {
+          try {
+            await fetch(GAS_SURVEY_URL, {
+              method: "POST",
+              mode: "no-cors",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+          } catch (err) {
+            console.warn("Gagal mengirim data survei ke GAS:", err);
+          }
+        } else {
+          console.log("[GAS Survey Logged Locally - GAS_SURVEY_URL belum diisi]:", payload);
+        }
+
+        setTimeout(() => {
+          setShowSurveyModal(false);
+          onBack();
+        }, 1600);
+      };
+
+      const handleSkipSurvey = () => {
+        setShowSurveyModal(false);
+        onBack();
+      };
+
+      return (
+        <div className="space-y-8 animate-fadeIn">
+          <button
+            onClick={handleBackClick}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-brand-green transition-colors"
+          >
+            <Icon name="arrow-left" className="w-4 h-4" />
+            <span>Kembali ke Daftar Skenario Navigasi</span>
+          </button>
+
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase">
+              <Icon name="compass" className="w-3.5 h-3.5" />
+              <span>{scenario.category}</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+              {scenario.title}
+            </h1>
+            <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed">
+              {scenario.introduction}
+            </p>
+          </div>
+
+          {flowConfig ? (
+            <div className="bg-emerald-50/80 dark:bg-slate-800/90 rounded-3xl p-6 sm:p-8 border border-emerald-200 dark:border-emerald-900 space-y-6 shadow-xs">
+              <div className="space-y-1">
+                <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Icon name="help-circle" className="w-4 h-4" />
+                  <span>Tanya-Jawab Interaktif Kebutuhan Anda</span>
+                </span>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  {flowConfig.description}
+                </h3>
+              </div>
+
+              <div className="space-y-6">
+                {flowConfig.questions.map((q) => {
+                  if (q.condition && !q.condition(answers)) return null;
+                  return (
+                    <div key={q.id} className="space-y-3 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-emerald-100 dark:border-slate-700">
+                      <h4 className="font-semibold text-sm sm:text-base text-slate-800 dark:text-slate-100">
+                        {q.question}
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {q.options.map((opt) => {
+                          const isSelected = answers[q.id] === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              onClick={() => handleSelectOption(q.id, opt.value)}
+                              className={`p-3.5 text-left text-xs sm:text-sm font-medium rounded-xl border transition-all flex items-center justify-between ${
+                                isSelected
+                                  ? 'bg-brand-green text-white border-brand-green font-bold shadow-xs'
+                                  : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-400'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Icon name={opt.icon || 'circle'} className="w-4 h-4" />
+                                <span>{opt.label}</span>
+                              </div>
+                              {isSelected && <Icon name="check-circle-2" className="w-4 h-4 ml-2" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {result && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Icon name="list-checks" className="w-6 h-6 text-brand-green" />
+                  <span>Alur Langkah Tepat Sesuai Pilihan Anda</span>
+                </h2>
+                <span className="text-xs text-slate-500 font-semibold">{result.steps.length} Langkah Utama</span>
+              </div>
+
+              <div className="space-y-4">
+                {result.steps.map((step, idx) => (
+                  <div key={idx} className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs flex items-start gap-4 hover:border-emerald-500/50 transition-colors">
+                    <div className="w-9 h-9 rounded-full bg-brand-green text-white font-extrabold text-sm flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
+                      {idx + 1}
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <h3 className="font-bold text-slate-800 dark:text-white text-base sm:text-lg">
+                        {step.title}
+                      </h3>
+                      <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed">
+                        {step.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {result.notes && result.notes.length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-950/40 rounded-2xl p-6 border border-amber-200 dark:border-amber-900/60 space-y-2">
+                  <h3 className="font-bold text-amber-900 dark:text-amber-200 text-sm flex items-center gap-2">
+                    <Icon name="alert-circle" className="w-4 h-4 text-amber-600" />
+                    <span>Catatan Penting Pelayanan</span>
+                  </h3>
+                  <ul className="list-disc list-inside text-xs sm:text-sm text-amber-800 dark:text-amber-300 space-y-1.5 leading-relaxed">
+                    {result.notes.map((note, nIdx) => (
+                      <li key={nIdx}>{note}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="pt-4 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Icon name="shield-check" className="w-4 h-4 text-emerald-600" />
+                  <span>Sumber Resmi Terverifikasi: {result.sources.map(s => s.name).join(', ')}</span>
+                </div>
+                <a 
+                  href={result.sources[0]?.url || "https://kemkes.go.id"} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="text-brand-green font-bold hover:underline flex items-center gap-1"
+                >
+                  <span>Verifikasi Portal Resmi</span>
+                  <Icon name="external-link" className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* ANONYMOUS SURVEY MODAL ON KEMBALI (FIXED CENTERED OVERLAY - ZERO SCROLL NEEDED) */}
+          {showSurveyModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md animate-fadeIn overflow-y-auto">
+              <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-5 sm:p-6 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4 relative my-auto">
+                <button 
+                  onClick={handleSkipSurvey}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full transition-colors"
+                  aria-label="Tutup"
+                >
+                  <Icon name="x" className="w-5 h-5" />
+                </button>
+
+                {!surveySubmitted ? (
+                  <div className="space-y-4 text-center">
+                    <div className="w-12 h-12 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950 text-brand-green flex items-center justify-center">
+                      <Icon name="heart-handshake" className="w-6 h-6" />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                        Survei Kepahaman Anonim
+                      </span>
+                      <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
+                        Apakah Informasi Ini Membantu Anda?
+                      </h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Pilihan Anda membantu mengukur tingkat kepahaman masyarakat secara anonim tanpa data pribadi.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <button
+                        onClick={() => handleSurveySubmit(true)}
+                        className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border-2 border-emerald-300 dark:border-emerald-700 hover:border-brand-green text-slate-800 dark:text-slate-100 font-bold text-xs sm:text-sm flex flex-col items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-xs"
+                      >
+                        <span className="text-2xl">👍</span>
+                        <span>Membantu (Saya Jadi Paham)</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleSurveySubmit(false)}
+                        className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-400 text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm flex flex-col items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-xs"
+                      >
+                        <span className="text-2xl">👎</span>
+                        <span>Belum Membantu / Bingung</span>
+                      </button>
+                    </div>
+
+                    <div className="pt-1">
+                      <button
+                        onClick={handleSkipSurvey}
+                        className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline font-medium"
+                      >
+                        Lewati survei & langsung kembali
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3 text-center py-3 animate-fadeIn">
+                    <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950 text-brand-green flex items-center justify-center">
+                      <Icon name="check-circle" className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                      Terima Kasih Banyak!
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-xs mx-auto">
+                      Masukan Anda membantu kami memastikan informasi kesehatan ArahSehat selalu mudah dipahami oleh seluruh masyarakat Indonesia.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
